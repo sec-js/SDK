@@ -224,6 +224,44 @@ def main(argv=None):
             tsv_file.close()
             print(colored(f"[{rightnow()}] Exported output to \"{tsv_filename}\".", 'green'))
 
+        if args.reversedomain:
+            print(
+                colored(
+                    f'[{rightnow()}] Starting reverse domain export of "{args.identity}".',
+                    "green",
+                )
+            )
+            account = IdentityService.reverse_domain(
+                ix,
+                args.identity,
+                datefrom=datefrom,
+                dateto=dateto,
+                terminate=terminate,
+            )
+            headers = ["User", "Password", "Password Type", "Source Short"]
+            data = []
+            for block in account:
+                for result in account[block]:
+                    data.append(
+                        [
+                            result["user"],
+                            result["password"],
+                            result["url"],
+                            result["sourceshort"],
+                        ]
+                    )
+            print(
+                tabulate.tabulate(sorted(data), headers=headers, tablefmt="fancy_grid")
+            )
+            exporttsv = tabulate.tabulate(data, tablefmt="tsv")
+            tsv_filename = "intelx-output-" + args.identity + "-export_accounts.tsv"
+            tsv_file = open(tsv_filename, "w")
+            tsv_file.write(exporttsv)
+            tsv_file.close()
+            print(
+                colored(f'[{rightnow()}] Exported output to "{tsv_filename}".', "green")
+            )
+
         if args.dataleaks:
                 print(colored(f"[{rightnow()}] Starting data leaks search of \"{args.identity}\".", 'green'))
                 search = IdentityService.idsearch(

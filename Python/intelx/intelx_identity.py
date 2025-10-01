@@ -105,3 +105,40 @@ class IdentityService(intelx):
             return {'records': results}
         else:
             return (r.status_code, r.text)
+
+    def reverse_domain(self, term, maxresults=10, datefrom=None, dateto=None, terminate=None):
+        p = {
+            "selector": term,
+            "limit": maxresults,
+            "datefrom": datefrom,  # "YYYY-MM-DD HH:MM:SS",
+            "dateto": dateto,  # "YYYY-MM-DD HH:MM:SS"
+            "terminate": terminate,
+        }
+        done = False
+        results = []
+        r = requests.get(self.API_ROOT + '/reverse/domain',
+                        headers=self.HEADERS, params=p, timeout=30)
+        if r.status_code == 200:
+            search_id = r.json()['id']
+            if len(str(search_id)) <= 3:
+                print(
+                    f"[!] intelx.IDENTITY_DOMAIN() Received {self.get_error(search_id)}"
+                )
+            while not done:
+                time.sleep(self.API_RATE_LIMIT)
+                r = self.get_search_results(search_id, maxresults=maxresults)
+                if (r["status"] == 0 and r["records"]):
+                    for a in r['records']:
+                        results.append(a)
+                    maxresults -= len(r['records'])
+                if (r['status'] == 2 or maxresults <= 0):
+                    if(r['records']):
+                        for a in r['records']:
+                            results.append(a)
+                        maxresults -= len(r['records'])
+                    if (maxresults <= 0):
+                        self.terminate_search(search_id)
+                    done = True
+            return {'records': results}
+        else:
+            return (r.status_code, r.text)
