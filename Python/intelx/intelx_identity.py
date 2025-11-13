@@ -6,11 +6,7 @@ from intelxapi import intelx
 
 class IdentityService(intelx):
 
-    def __init__(self, api_key, user_agent='IX-Python/0.7'):
-        super().__init__(api_key, user_agent)
-        self.API_ROOT = 'https://3.intelx.io'
-        self.HEADERS = {'X-Key': self.API_KEY, 'User-Agent': self.USER_AGENT}
-        self.PAUSE_BETWEEN_REQUESTS = 1
+    API_ROOT = 'https://3.intelx.io'
 
     def get_search_results(self, id, format=1, maxresults=100):
         params = {'id': id, 'format': format, 'limit': maxresults}
@@ -45,7 +41,7 @@ class IdentityService(intelx):
             print(
                 f"[!] intelx.IDENTITY_SEARCH() Received {self.get_error(search_id)}")
         while not done:
-            time.sleep(self.PAUSE_BETWEEN_REQUESTS)
+            time.sleep(self.API_RATE_LIMIT)
             r = self.get_search_results(search_id, maxresults=maxresults)
             if (r["status"] == 0 and r["records"]):
                 for a in r['records']:
@@ -92,7 +88,7 @@ class IdentityService(intelx):
                 print(
                     f"[!] intelx.IDENTITY_EXPORT() Received {self.get_error(search_id)}")
             while not done:
-                time.sleep(self.PAUSE_BETWEEN_REQUESTS)
+                time.sleep(self.API_RATE_LIMIT)
                 r = self.get_search_results(search_id, maxresults=maxresults)
                 if (r["status"] == 0 and r["records"]):
                     for a in r['records']:

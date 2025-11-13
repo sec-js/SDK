@@ -21,18 +21,17 @@ import requests
 class intelx:
 
     API_ROOT = 'https://2.intelx.io'
-    API_KEY = ''
-    USER_AGENT = ''
+    API_RATE_LIMIT = 1
 
     # The API key must be always supplied
-    def __init__(self, key, ua='IX-Python/0.7'):
+    def __init__(self, api_key, user_agent='IX-Python/0.7'):
         """
         Initialize API by setting the API key.
         """
-        self.API_ROOT = "https://2.intelx.io"
-        self.API_KEY = key
-        self.USER_AGENT = ua
-        self.API_RATE_LIMIT = 1
+        self.API_KEY = api_key
+        self.USER_AGENT = user_agent
+        self.API_ROOT = type(self).API_ROOT
+        self.API_RATE_LIMIT = type(self).API_RATE_LIMIT
         self.HEADERS = {'X-Key': self.API_KEY, 'User-Agent': self.USER_AGENT}
 
     def get_error(self, code):
@@ -73,7 +72,7 @@ class intelx:
         Return a JSON object with the current user's API capabilities
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = {'x-key': self.API_KEY, 'User-Agent': self.USER_AGENT}
+        h = self._headers()
         r = requests.get(f"{self.API_ROOT}/authenticate/info", headers=h, timeout=30)
         return r.json()
 
@@ -143,7 +142,7 @@ class intelx:
         - Specify the name to save the file as (e.g document.pdf).
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = {'x-key': self.API_KEY, 'User-Agent': self.USER_AGENT}
+        h = self._headers()
         r = requests.get(f"{self.API_ROOT}/file/read?type={type}&systemid={id}&bucket={bucket}", headers=h, stream=True, timeout=30)
         with open(f"{filename}", "wb") as f:
             f.write(r.content)
@@ -245,7 +244,7 @@ class intelx:
 
         Soft selectors (generic terms) are not supported!
         """
-        h = {'x-key': self.API_KEY, 'User-Agent': self.USER_AGENT}
+        h = self._headers()
         p = {
             "term": term,
             "buckets": buckets,
@@ -350,7 +349,7 @@ class intelx:
 
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = {'x-key': self.API_KEY, 'User-Agent': self.USER_AGENT}
+        h = self._headers()
         r = requests.get(self.API_ROOT + f'/intelligent/search/result?id={id}&limit={limit}', headers=h, timeout=30)
         if(r.status_code == 200):
             return r.json()
@@ -362,7 +361,7 @@ class intelx:
         Terminate a previously initialized search based on its UUID.
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = {'x-key': self.API_KEY, 'User-Agent': self.USER_AGENT}
+        h = self._headers()
         r = requests.get(self.API_ROOT + f'/intelligent/search/terminate?id={uuid}', headers=h, timeout=30)
         if(r.status_code == 200):
             return True
@@ -374,7 +373,7 @@ class intelx:
         Initialize a phonebook search and return the ID of the task/search for further processing
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = {'x-key': self.API_KEY, 'User-Agent': self.USER_AGENT}
+        h = self._headers()
         p = {
             "term": term,
             "buckets": buckets,
@@ -408,10 +407,35 @@ class intelx:
         - 3: No results yet, but keep trying.
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = {'x-key': self.API_KEY, 'User-Agent': self.USER_AGENT}
+        h = self._headers()
         r = requests.get(self.API_ROOT + f'/phonebook/search/result?id={id}&limit={limit}&offset={offset}', headers=h, timeout=30)
         if(r.status_code == 200):
             return r.json()
+        else:
+            return r.status_code
+
+    def INTEL_EXPORT(self, id, start=1, end=1000, filename="sample"):
+        """
+        Export all file from search. Use this for direct data download All file in one time.
+        id search:
+        - Specifies search ID.
+        start option:
+        - start index of search
+        - default: 1
+        end option:
+        - end index of search
+        - default: 1000
+        filename option:
+        - Specify the name to save the file as (default: sample, extention alway is zip).
+        """
+        time.sleep(self.API_RATE_LIMIT)
+        h = self._headers()
+        r = requests.get(self.API_ROOT + f"/intelligent/search/result?id={id}&f={start}&l={end}", headers=h, stream=True)
+        if r.status_code == 200:
+            with open(f"{filename}.json", "wb") as f:
+                f.write(r.content)
+                f.close()
+            return True
         else:
             return r.status_code
 
@@ -438,7 +462,7 @@ class intelx:
           b. List of indexed sub-pages for a given website. Use the storage ID from the field "indexfile" in the search result.
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = {'x-key': self.API_KEY, 'User-Agent': self.USER_AGENT}
+        h = self._headers()
         r = requests.get(self.API_ROOT + f'/file/view?f=13&storageid={id}&bucket={bucket}', headers=h, timeout=30)
 
         if(r.status_code == 200):
