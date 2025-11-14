@@ -6,9 +6,15 @@ requires = [
     "setuptools>=61.0",
     "tabulate",
     "termcolor",
+    "wheel",
 ]
 
 [project]
+name = "intelx-sdk"
+readme = "README.md"
+requires-python = ">=3.10"
+version = "0.8.0dev3"
+description = "IntelX is a Python command-line utility and API wrapper for intelx.io, made to perform any kind of open-source intelligence."
 authors = [
     { email = "info@intelx.io", name = "Kleissner Investments s.r.o./ Dominik Penner" },
 ]
@@ -22,7 +28,6 @@ dependencies = [
     "tabulate",
     "termcolor",
 ]
-description = "IntelX is a Python command-line utility and API wrapper for intelx.io, made to perform any kind of open-source intelligence."
 keywords = [
     "IntelligenceX",
     "_IntelligenceX",
@@ -31,19 +36,13 @@ keywords = [
     "intelx",
     "intelx.io",
 ]
-name = "intelx"
-readme = "README.md"
-requires-python = ">=3.10"
-version = "0.7.0dev3"
 
 [project.urls]
 "Bug Tracker" = "https://github.com/IntelligenceX/SDK/issues"
 Homepage = "https://github.com/IntelligenceX/SDK/tree/master/Python"
 
-[tool.setuptools]
-script-files = [
-    "scripts/intelx.py",
-]
+[project.scripts]
+intelx = "scripts.intelx:main"
 
-[tool.setuptools.package-dir]
-"" = "intelx"
+[tool.setuptools]
+packages = ["intelx"]

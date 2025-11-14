@@ -72,9 +72,14 @@ class intelx:
         Return a JSON object with the current user's API capabilities
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self._headers()
+        h = self.HEADERS
         r = requests.get(f"{self.API_ROOT}/authenticate/info", headers=h, timeout=30)
-        return r.json()
+        if r.status_code == 200:
+            if r.json()['status'] == 1:
+                return r.json()['status']
+            return r.json()['id']
+        else:
+            return r.status_code
 
     def FILE_PREVIEW(self, ctype, mediatype, format, sid, bucket='', e=0, lines=8):
         """
@@ -142,7 +147,7 @@ class intelx:
         - Specify the name to save the file as (e.g document.pdf).
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self._headers()
+        h = self.HEADERS
         r = requests.get(f"{self.API_ROOT}/file/read?type={type}&systemid={id}&bucket={bucket}", headers=h, stream=True, timeout=30)
         with open(f"{filename}", "wb") as f:
             f.write(r.content)
@@ -244,7 +249,7 @@ class intelx:
 
         Soft selectors (generic terms) are not supported!
         """
-        h = self._headers()
+        h = self.HEADERS
         p = {
             "term": term,
             "buckets": buckets,
@@ -349,7 +354,7 @@ class intelx:
 
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self._headers()
+        h = self.HEADERS
         r = requests.get(self.API_ROOT + f'/intelligent/search/result?id={id}&limit={limit}', headers=h, timeout=30)
         if(r.status_code == 200):
             return r.json()
@@ -361,7 +366,7 @@ class intelx:
         Terminate a previously initialized search based on its UUID.
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self._headers()
+        h = self.HEADERS
         r = requests.get(self.API_ROOT + f'/intelligent/search/terminate?id={uuid}', headers=h, timeout=30)
         if(r.status_code == 200):
             return True
@@ -373,7 +378,7 @@ class intelx:
         Initialize a phonebook search and return the ID of the task/search for further processing
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self._headers()
+        h = self.HEADERS
         p = {
             "term": term,
             "buckets": buckets,
@@ -407,7 +412,7 @@ class intelx:
         - 3: No results yet, but keep trying.
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self._headers()
+        h = self.HEADERS
         r = requests.get(self.API_ROOT + f'/phonebook/search/result?id={id}&limit={limit}&offset={offset}', headers=h, timeout=30)
         if(r.status_code == 200):
             return r.json()
@@ -429,7 +434,7 @@ class intelx:
         - Specify the name to save the file as (default: sample, extention alway is zip).
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self._headers()
+        h = self.HEADERS
         r = requests.get(self.API_ROOT + f"/intelligent/search/result?id={id}&f={start}&l={end}", headers=h, stream=True)
         if r.status_code == 200:
             with open(f"{filename}.json", "wb") as f:
@@ -462,7 +467,7 @@ class intelx:
           b. List of indexed sub-pages for a given website. Use the storage ID from the field "indexfile" in the search result.
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self._headers()
+        h = self.HEADERS
         r = requests.get(self.API_ROOT + f'/file/view?f=13&storageid={id}&bucket={bucket}', headers=h, timeout=30)
 
         if(r.status_code == 200):

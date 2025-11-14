@@ -33,7 +33,26 @@ pip install "intelx @ git+https://github.com/IntelligenceX/SDK#subdirectory=Pyth
 ```bash
 git clone https://github.com/IntelligenceX/SDK
 cd Python
-pip3 install -e .
+python -m pip install -e .
+```
+
+### Docker + VS Code
+
+Open the Dev Container and get a shell (VS Code)
+
+1. Open the folder that contains **.devcontainer/** (next to **Dockerfile** and **requirements.txt**) in **VS Code**.
+2. Ensure **Docker** is running and the **Dev Containers** extension is installed.
+3. Press **Ctrl+Shift+P** → **Dev Containers: Reopen in Container**  
+   - If you changed the Dockerfile/requirements: **Dev Containers: Rebuild and Reopen in Container**.
+4. After the container opens, go to **Terminal → New Terminal** — this terminal runs **inside** the container.
+
+**Tips**
+- Not in a container? Click the green corner button (><) → **Reopen in Container**.
+- Need a clean build? **Dev Containers: Rebuild Without Cache**.
+
+
+```bash
+python -m pip install -e .
 ```
 
 ## Setup
