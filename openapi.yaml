@@ -49,7 +49,7 @@ paths:
                   /phonebook/search/result:    { Path: "/phonebook/search/result",    Credit: 0,    CreditMax: 0,    CreditReset: 0 }
                 searchesactive: 0
                 maxconcurrentsearches: 10
-        401:
+        '401':
           description: Unauthorized
   /file/preview:
     get:
@@ -120,7 +120,7 @@ paths:
         name option:
           - Specify the name to save the file as (e.g document.pdf).
       security:
-        - ApiKeyAuth: []
+        - ApiKeyAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/SearchIdParam'
         - name: type
@@ -181,6 +181,125 @@ paths:
           description: item was not found
         "503":
           description: no storage server was available
+  /intelligent/search:
+    servers:
+      - url: https://2.intelx.io
+        description: Intelligent search backend
+    post:
+      summary: Initialize an intelligent search and return the ID of the task/search for further processing.
+      operationId: intelligentSearch
+      security:
+        - ApiKeyAuth: [ ]
+      description: |
+        Initialize an intelligent search and return the ID of the task/search for further processing.         
+      parameters:
+        - name: term
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: info@intelx.io
+          description: |
+            The term must be a strong selector. These selector types are currently supported:
+              - Email address
+              - Domain, including wildcards like *.example.com
+              - URL
+              - IPv4 & IPv6
+              - CIDRv4 & CIDRv6
+              - Phone Number
+              - Bitcoin Address
+              - MAC Address
+              - IPFS Hash
+              - UUID
+              - Storage ID
+              - System ID
+              - Simhash
+              - Credit card number
+              - IBAN
+            Soft selectors (generic terms) are not supported!
+        - $ref: '#/components/parameters/MaxresultsParam'
+        - $ref: '#/components/parameters/BucketsParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - name: datefrom
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: 2020-01-01 00:00:00        
+          description: |
+            - Set a starting date to begin the search from.
+            - Example: 2020-01-01 00:00:00
+            - Example: 2020-01-01 12:00:00
+        - name: dateto
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: 2020-02-02 23:59:59
+          
+          description: |
+            - Set an ending date to finish the search from.
+            - Example: 2020-02-02 23:59:59
+            - Example: 2020-02-02 00:00:00
+        - name: sort
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: integer
+          example: 4
+          description: |
+            - Define the way to sort search results.
+            - 0: No sorting.
+            - 1: X-Score ASC. Least relevant items first.
+            - 2: X-Score DESC. Most relevant items first.
+            - 3: Date ASC. Oldest items first.
+            - 4: Date DESC. Newest items first.
+        - $ref: '#/components/parameters/MediaParam'
+        - name: lookuplevel
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+          example: 0
+          description: |
+            lookuplevel
+        - $ref: '#/components/parameters/TerminateParam'
+      responses:
+        '200':
+          description: Success search
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    description: Result status
+                  id:
+                    type: string
+                    example: '61202067-543e-4e6a-8c23-11f9b8f008cf'
+                    pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          links:
+            LiveSearchResult:
+              operationId: liveSearchResult
+              parameters:
+                id: $response.body#/id
+        '400':
+          description: Invalid data
+        '401':
+          description: Invalid api token; not authorized for buckets
+        '402':
+          description: if no credits available
   /intelligent/search/export:
      get:
        operationId: intelligent/search/export
@@ -391,121 +510,6 @@ paths:
         - ApiKeyQueryParam: [ ]
       parameters:
         - $ref: '#/components/parameters/SearchIdParam'
-  /intelligent/search:
-    post:
-      summary: Initialize an intelligent search and return the ID of the task/search for further processing.
-      operationId: intelligentSearch
-      description: |
-        Initialize an intelligent search and return the ID of the task/search for further processing.         
-      parameters:
-        - name: selector
-          in: query
-          required: true
-          style: form
-          explode: true
-          schema:
-            type: string
-          example: info@intelx.io
-          description: |
-            The term must be a strong selector. These selector types are currently supported:
-              - Email address
-              - Domain, including wildcards like *.example.com
-              - URL
-              - IPv4 & IPv6
-              - CIDRv4 & CIDRv6
-              - Phone Number
-              - Bitcoin Address
-              - MAC Address
-              - IPFS Hash
-              - UUID
-              - Storage ID
-              - System ID
-              - Simhash
-              - Credit card number
-              - IBAN
-
-            Soft selectors (generic terms) are not supported!
-        - $ref: '#/components/parameters/MaxresultsParam'
-        - $ref: '#/components/parameters/BucketsParam'
-        - $ref: '#/components/parameters/TimeoutParam'
-        - name: datefrom
-          in: query
-          required: true
-          style: form
-          explode: true
-          schema:
-            type: string
-          example: 2020-01-01 00:00:00        
-          description: |
-            - Set a starting date to begin the search from.
-            - Example: 2020-01-01 00:00:00
-            - Example: 2020-01-01 12:00:00
-        - name: dateto
-          in: query
-          required: true
-          style: form
-          explode: true
-          schema:
-            type: string
-          example: 2020-02-02 23:59:59
-          
-          description: |
-            - Set an ending date to finish the search from.
-            - Example: 2020-02-02 23:59:59
-            - Example: 2020-02-02 00:00:00
-        - name: sort
-          in: query
-          required: true
-          style: form
-          explode: true
-          schema:
-            type: integer
-          example: 4
-          description: |
-            - Define the way to sort search results.
-            - 0: No sorting.
-            - 1: X-Score ASC. Least relevant items first.
-            - 2: X-Score DESC. Most relevant items first.
-            - 3: Date ASC. Oldest items first.
-            - 4: Date DESC. Newest items first.
-        - $ref: '#/components/parameters/MediaParam'
-        - name: lookuplevel
-          in: query
-          required: false
-          style: form
-          explode: true
-          schema:
-            type: integer
-          example: 0
-          description: |
-            lookuplevel
-        - $ref: '#/components/parameters/TerminateParam'
-      responses:
-        '200':
-          description: Success search
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: integer
-                    description: Result status
-                  id:
-                    type: string
-                    example: '61202067-543e-4e6a-8c23-11f9b8f008cf'
-                    pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-          links:
-            LiveSearchResult:
-              operationId: liveSearchResult
-              parameters:
-                id: $response.body#/id
-        '400':
-          description: Invalid data
-        '401':
-          description: Invalid api token
-      security:
-        - ApiKeyAuth: []
   /live/search/internal:
     get:
       summary: Internal live search
@@ -709,7 +713,7 @@ components:
       style: form
       explode: true
       schema:
-        type: string
+        type: string      
       example: pastes,darknet.i2p
       description: |
         - Specify the buckets to search
