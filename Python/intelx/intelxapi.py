@@ -24,13 +24,16 @@ class intelx:
     API_RATE_LIMIT = 1
 
     # The API key must be always supplied
-    def __init__(self, api_key, user_agent='IX-Python/0.7'):
+    def __init__(self, api_key, base_url: str | None = None, user_agent='IX-Python/0.8'):
         """
         Initialize API by setting the API key.
         """
         self.API_KEY = api_key
+        if base_url is not None:
+            self.API_ROOT = base_url
+        else:
+            self.API_ROOT = type(self).API_ROOT
         self.USER_AGENT = user_agent
-        self.API_ROOT = type(self).API_ROOT
         self.API_RATE_LIMIT = type(self).API_RATE_LIMIT
         self.HEADERS = {'X-Key': self.API_KEY, 'User-Agent': self.USER_AGENT}
 
