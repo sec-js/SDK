@@ -9,6 +9,9 @@ info:
     Internal search in "buckets" (e.g. usenet, web.public, whois).   Needs `X-Key` header authorization.
 servers:
   - url: 'https://3.intelx.io'
+    description: Public / live search API
+  - url: 'https://2.intelx.io'
+    description: Core Intelligence X API
 paths:
   /authenticate/info:
     get:
@@ -52,6 +55,8 @@ paths:
         '401':
           description: Unauthorized
   /file/preview:
+    servers:
+      - url: 'https://2.intelx.io'
     get:
       summary: File preview
       operationId: filePreview
@@ -102,6 +107,8 @@ paths:
           example: web.public.we
           description: Bucket
   /file/read:
+    servers:
+      - url: 'https://2.intelx.io'
     get:
       summary: Read a file's raw contents. Use this for direct data download.
       operationId: fileRead
@@ -183,8 +190,7 @@ paths:
           description: no storage server was available
   /intelligent/search:
     servers:
-      - url: https://2.intelx.io
-        description: Intelligent search backend
+      - url: 'https://2.intelx.io'
     post:
       summary: Initialize an intelligent search and return the ID of the task/search for further processing.
       operationId: intelligentSearch
@@ -301,6 +307,8 @@ paths:
         '402':
           description: if no credits available
   /intelligent/search/export:
+     servers:
+      - url: 'https://2.intelx.io'
      get:
        operationId: intelligent/search/export
        summary: Export intelligent search
@@ -323,12 +331,14 @@ paths:
          "404":
            description: item was not found
   /intelligent/search/result:
-     get:
-       summary: Fetch intelligent search result
-       operationId: intelligentSearchResult
-       security:
-         - ApiKeyQueryParam: [ ]
-       parameters:
+    servers:
+      - url: 'https://2.intelx.io'
+    get:
+      summary: Fetch intelligent search result
+      operationId: intelligentSearchResult
+      security:
+        - ApiKeyQueryParam: [ ]
+      parameters:
         - $ref: '#/components/parameters/SearchIdParam'
         - $ref: '#/components/parameters/LimitParam'
         - $ref: '#/components/parameters/MediaParam'
@@ -374,7 +384,51 @@ paths:
             type: integer
             enum: [0, 1]
           description: Reset previous searches
+      responses:
+        '200':
+          description: |
+            Intelligent search result page. The client is expected to poll this
+            endpoint repeatedly and interpret the status code:
+
+              0 = Success with results (continue polling, more results available)
+              1 = No more results available (this response might still have results)
+              2 = Search ID not found
+              3 = No results yet available, keep trying
+              4 = Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  records:
+                    type: array
+                    description: Result records in this page
+                    items:
+                      $ref: '#/components/schemas/SearchResult'
+                  status:
+                    type: integer
+                    enum: [0, 1, 2, 3, 4]
+                    description: |
+                      Status of the search result:
+                        0 = Success with results (continue polling)
+                        1 = No more results available
+                        2 = Search ID not found
+                        3 = No results yet available, keep trying
+                        4 = Error
+                required:
+                  - status
+        '400':
+          description: Invalid input data
+        '401':
+          description: Not authorized. Verify the API key.
+        '404':
+          description: Search ID not found
+        '500':
+          description: Internal API error
+
   /intelligent/search/statistic:
+    servers:
+      - url: 'https://2.intelx.io'
     get:
       summary: Intelligent search statistics
       operationId: intelligentSearchStatistics
@@ -383,6 +437,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/SearchIdParam'
   /intelligent/search/terminate:
+    servers:
+      - url: 'https://2.intelx.io'
     get:
       summary: Terminate previous search
       operationId: intelligentSearchTerminate
@@ -693,6 +749,7 @@ components:
         type: array
         items:
           type: string
+          format: uuid
       style: form
       description: You can terminate previous search ids
     MaxresultsParam:
@@ -713,7 +770,7 @@ components:
       style: form
       explode: true
       schema:
-        type: string      
+        type: string
       example: pastes,darknet.i2p
       description: |
         - Specify the buckets to search
@@ -761,3 +818,239 @@ components:
         pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       example: '61202067-543e-4e6a-8c23-11f9b8f008cf'
       description: 'Search id (e.g. "61202067-543e-4e6a-8c23-11f9b8f008cf")'
+  schemas:
+    Tag:
+      type: object
+      properties:
+        class:
+          type: integer
+          format: int32
+          description: Tag class
+        value:
+          type: string
+          description: Tag value
+      required: [class, value]
+
+    Relationship:
+      type: object
+      properties:
+        target:
+          type: string
+          format: uuid
+          description: Target item system ID
+        relation:
+          type: integer
+          description: Relation type (see server implementation)
+      required: [target, relation]
+
+    Item:
+      type: object
+      description: Generic item meta-data, as used for search results.
+      properties:
+        systemid:
+          type: string
+          format: uuid
+          description: System identifier uniquely identifying the item
+        storageid:
+          type: string
+          description: Storage identifier, empty if not stored/available
+        instore:
+          type: boolean
+          description: Whether the data of the item is in store and the storageid is valid
+        size:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Size in bytes of the item data
+        accesslevel:
+          type: integer
+          description: Native access level of the item
+        type:
+          type: integer
+          description: Low-level content type
+        media:
+          type: integer
+          description: High-level media type
+        added:
+          type: string
+          format: date-time
+          description: When the item was added to the system
+        date:
+          type: string
+          format: date-time
+          description: When the item was discovered or created
+        name:
+          type: string
+          description: Name or title
+        description:
+          type: string
+          description: Full description, text only
+        xscore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: X-Score, ranking its relevancy, 0–100
+        simhash:
+          type: integer
+          format: int64
+          description: Simhash of the item data
+        bucket:
+          type: string
+          description: Bucket identifier
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          description: Meta-data tags helping in classification of the item data
+        relations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Relationship'
+          description: Related items
+      required:
+        - systemid
+
+    PanelSearchResultTag:
+      type: object
+      properties:
+        class:
+          type: integer
+          format: int32
+          description: Tag class
+        classh:
+          type: string
+          description: Human friendly tag class
+        value:
+          type: string
+          description: Tag value
+        valueh:
+          type: string
+          description: Human friendly tag value
+
+    SearchResult:
+      allOf:
+        - $ref: '#/components/schemas/Item'
+        - type: object
+          description: Search result record, extends Item with human-readable fields.
+          properties:
+            accesslevelh:
+              type: string
+              description: Human friendly access level info
+            mediah:
+              type: string
+              description: Human friendly media type info
+            simhashh:
+              type: string
+              description: Human friendly simhash
+            typeh:
+              type: string
+              description: Human friendly content type info
+            tagsh:
+              type: array
+              items:
+                $ref: '#/components/schemas/PanelSearchResultTag'
+              description: Human friendly tags
+            randomid:
+              type: string
+              format: uuid
+              description: Random ID
+            bucketh:
+              type: string
+              description: Human friendly bucket name
+            group:
+              type: string
+              description: File group
+            indexfile:
+              type: string
+              description: Index file ID
+
+    IntelligentSearchResult:
+      type: object
+      description: Contains search result records and status.
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+          description: Result records
+        status:
+          type: integer
+          description: |
+            Status:
+              0 = Success with results (continue)
+              1 = No more results available
+              2 = Search ID not found
+              3 = No results yet available, keep trying
+              4 = Error
+      required:
+        - status
+
+    IntelligentSearchResponse:
+      type: object
+      description: Response returned by /intelligent/search.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID of the search job
+        softselectorwarning:
+          type: boolean
+          description: Warning about soft selectors
+        status:
+          type: integer
+          description: |
+            Status:
+              0 = Success (ID valid)
+              1 = Invalid term
+              2 = Error: max concurrent searches
+      required:
+        - id
+        - status
+
+    IntelligentSearchRequest:
+      type: object
+      description: Request body for intelligent search.
+      properties:
+        term:
+          type: string
+          description: Search term submitted by the user
+        buckets:
+          type: array
+          items:
+            type: string
+          description: Bucket identifiers
+        timeout:
+          type: integer
+          format: int32
+          description: Timeout in seconds. 0 means default.
+        maxresults:
+          type: integer
+          format: int32
+          description: Total number of max results per bucket. 0 means default.
+        datefrom:
+          type: string
+          description: Date from in `YYYY-mm-dd HH:ii:ss` format (not RFC3339).
+        dateto:
+          type: string
+          description: Date to in `YYYY-mm-dd HH:ii:ss` format (not RFC3339).
+        sort:
+          type: integer
+          enum: [0, 1, 2, 3, 4]
+          description: |
+            Sort order:
+              0 = No sorting
+              1 = X-Score ASC
+              2 = X-Score DESC
+              3 = Date ASC
+              4 = Date DESC
+        media:
+          type: integer
+          description: Media type. 0 = not defined.
+        terminate:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Previous search IDs to terminate
+      required:
+        - term
