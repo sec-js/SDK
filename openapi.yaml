@@ -9,9 +9,14 @@ info:
     Internal search in "buckets" (e.g. usenet, web.public, whois).   Needs `X-Key` header authorization.
 servers:
   - url: 'https://3.intelx.io'
-    description: Public / live search API
+    description: Identity search API
   - url: 'https://2.intelx.io'
-    description: Core Intelligence X API
+    description: |
+      IntelligenceX API
+      https://2.intelx.io - paying users
+      https://public.intelx.io  - non-registered users
+      https://free.intelx.io - Free users (who have signed up on intelx.io)
+      see https://blog.intelx.io/2025/03/08/new-search-api-instances/
 paths:
   /authenticate/info:
     get:
