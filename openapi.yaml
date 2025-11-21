@@ -1,15 +1,10 @@
 openapi: 3.1.0
 info:
-  title: Intelx.io - Live Search API
-  license:
-    name: Kleissner Investments v1.0
-    url: 'https://intelx.io/licenses/LICENSE-1.0'
+  title: Intelx.io - Search API
   version: 1.0.0
   description: |
     Internal search in "buckets" (e.g. usenet, web.public, whois).   Needs `X-Key` header authorization.
 servers:
-  - url: 'https://3.intelx.io'
-    description: Identity search API
   - url: 'https://2.intelx.io'
     description: |
       IntelligenceX API
@@ -17,6 +12,8 @@ servers:
       https://public.intelx.io  - non-registered users
       https://free.intelx.io - Free users (who have signed up on intelx.io)
       see https://blog.intelx.io/2025/03/08/new-search-api-instances/
+  - url: 'https://3.intelx.io'
+    description: Identity search API      
 paths:
   /authenticate/info:
     get:
@@ -498,11 +495,19 @@ paths:
         - $ref: '#/components/parameters/SearchIdParam'
       responses:
         '200':
-          description: with the data, Content-Disposition set
+          description: Success, with data, Content-Disposition set
         '204':
-          description: item unavailable. This prevents redirection of the user to error page when providing a direct download link.
+          description: Download with content-disposition but item not available. This prevents redirection of the user to error page when providing a direct download link.
         '400':
-          description: invalid input
+          description: Invalid input. Returned if the encoding is invalid or a required parameter is missing.
+        '401':
+          description: | 
+            Unauthorized Authenticate: Access not authorized. 
+            This may be due missing permission for API call or to selected buckets. 
+        '402':
+          description: "Payment Required Authenticate: No credits available."
+        '404':
+          description: Not Found Item or identifier not found.
   /phonebook/search:
     post:
       operationId: phonebookSearch
@@ -572,6 +577,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/SearchIdParam'
   /live/search/internal:
+    servers:
+      - url: 'https://3.intelx.io'
     get:
       summary: Internal live search
       operationId: liveSearch
@@ -649,6 +656,8 @@ paths:
       security:
         - ApiKeyAuth: []
   /live/search/result:
+    servers:
+      - url: 'https://3.intelx.io'
     get:
       summary: Fetch results from internal live search
       operationId: liveSearchResult
@@ -688,6 +697,47 @@ paths:
           description: Invalid api token
       security:
         - ApiKeyAuth: []
+  /accounts/csv:
+    servers:
+      - url: 'https://3.intelx.io'
+    get:
+      security:
+        - ApiKeyAuth: [ ]
+      summary: Fetch results from internal live search
+      operationId: accountsCsv
+      description: |
+        Initiates the search; will return status and search Id on success. Status = 2 means end of search result. Good manners is to wait 1s before each new result fetch.
+      parameters:
+        - name: selector
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: info@intelx.io
+          description: Search term
+        - $ref: '#/components/parameters/OneBucketParam'
+        - $ref: '#/components/parameters/LimitParam'      
+        - name: datefrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2024-01-01 00:00:00'
+            pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+          description: Date from of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)
+        - name: dateto
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2024-01-31 23:59:59'
+            pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+          description: Date to of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)
+        - $ref: '#/components/parameters/TerminateParam'
 components:
   securitySchemes:
     ApiKeyQueryParam:
