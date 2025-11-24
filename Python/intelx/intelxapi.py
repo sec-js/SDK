@@ -22,6 +22,7 @@ class intelx:
 
     API_ROOT = 'https://2.intelx.io'
     API_RATE_LIMIT = 1
+    TIMEOUT = 30
 
     # The API key must be always supplied
     def __init__(self, api_key, base_url: str | None = None, user_agent='IX-Python/0.8', proxies=None, verify=True):
@@ -38,6 +39,30 @@ class intelx:
         self.HEADERS = {'X-Key': self.API_KEY, 'User-Agent': self.USER_AGENT}
         self.PROXIES = proxies
         self.VERIFY = verify
+
+    def _get(self, url, params=None, headers=None, proxies=None, verify=None, timeout=None, **kwargs ):
+        if headers is None:
+            headers = self.HEADERS
+        if proxies is None:
+            proxies = self.PROXIES
+        if verify is None:
+            verify = self.VERIFY
+        if timeout is None:
+            timeout = self.TIMEOUT
+
+        return requests.get(url, params=params, headers=headers, proxies=proxies, verify=verify, timeout=timeout, **kwargs )
+
+    def _post(self, url, data=None, json=None, headers=None, proxies=None, verify=None, timeout=None, **kwargs ):
+        if headers is None:
+            headers = self.HEADERS
+        if proxies is None:
+            proxies = self.PROXIES
+        if verify is None:
+            verify = self.VERIFY
+        if timeout is None:
+            timeout = self.TIMEOUT
+
+        return requests.post(url, data=data, json=json, headers=headers, proxies=proxies, verify=verify, timeout=timeout, **kwargs, )
 
     def get_error(self, code):
         """
@@ -77,12 +102,9 @@ class intelx:
         Return a JSON object with the current user's API capabilities
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self.HEADERS
-        r = requests.get(f"{self.API_ROOT}/authenticate/info", headers=h, proxies=self.PROXIES, verify=self.VERIFY, timeout=30)
-        if r.status_code == 200:
-            if r.json()['status'] == 1:
-                return r.json()['status']
-            return r.json()['id']
+        r = self._get(f"{self.API_ROOT}/authenticate/info")
+        if r.status_code == 200:        
+            return r.json()
         else:
             return r.status_code
 
@@ -94,7 +116,17 @@ class intelx:
         - 1: Picture
         """
         time.sleep(self.API_RATE_LIMIT)
-        r = requests.get(f"{self.API_ROOT}/file/preview?c={ctype}&m={mediatype}&f={format}&sid={sid}&b={bucket}&e={e}&l={lines}&k={self.API_KEY}", proxies=self.PROXIES, verify=self.VERIFY, timeout=30)
+        p = {
+            "c": ctype,
+            "m": mediatype,
+            "f": format,
+            "sid": sid,
+            "b": bucket,
+            "e": e,
+            "l": lines,
+            "k": self.API_KEY,
+        }
+        r = self._get(f"{self.API_ROOT}/file/preview", params=p)
         return r.text
 
     def FILE_VIEW(self, ctype, mediatype, sid, bucket='', escape=0):
@@ -130,7 +162,14 @@ class intelx:
         else:
             format = 1
         time.sleep(self.API_RATE_LIMIT)
-        r = requests.get(f"{self.API_ROOT}/file/view?f={format}&storageid={sid}&bucket={bucket}&escape={escape}&k={self.API_KEY}", proxies=self.PROXIES, verify=self.VERIFY, timeout=30)
+        p = {
+            "f": format,
+            "storageid": sid,
+            "bucket": bucket,
+            "escape": escape,
+            "k": self.API_KEY,
+        }
+        r = self._get(f"{self.API_ROOT}/file/view", params=p)
         return r.text
 
     def FILE_READ(self, id, type=0, bucket="", filename=""):
@@ -152,8 +191,12 @@ class intelx:
         - Specify the name to save the file as (e.g document.pdf).
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = {'x-key': self.API_KEY, 'User-Agent': self.USER_AGENT}
-        r = requests.get(f"{self.API_ROOT}/file/read?type={type}&systemid={id}&bucket={bucket}", headers=h, stream=True, proxies=self.PROXIES, verify=self.VERIFY, timeout=30)
+        p = {
+            "type": type,
+            "systemid": id,
+            "bucket": bucket,
+        }
+        r = self._get(f"{self.API_ROOT}/file/read", params=p, stream=True)
         with open(f"{filename}", "wb") as f:
             f.write(r.content)
             f.close()
@@ -165,7 +208,12 @@ class intelx:
         """
         time.sleep(self.API_RATE_LIMIT)
         try:
-            r = requests.get(f"{self.API_ROOT}/file/view?f=12&storageid={sid}&k={self.API_KEY}", timeout=5, proxies=self.PROXIES, verify=self.VERIFY)
+            p = {
+                "f": 12,
+                "storageid": sid,
+                "k": self.API_KEY,
+            }
+            r = self._get(f"{self.API_ROOT}/file/view", params=p, timeout=5)
             if "Could not generate" in r.text:
                 return False
             return r.text
@@ -254,7 +302,6 @@ class intelx:
 
         Soft selectors (generic terms) are not supported!
         """
-        h = self.HEADERS
         p = {
             "term": term,
             "buckets": buckets,
@@ -268,7 +315,7 @@ class intelx:
             "terminate": terminate
         }
         time.sleep(self.API_RATE_LIMIT)
-        r = requests.post(self.API_ROOT + '/intelligent/search', headers=h, json=p, proxies=self.PROXIES, verify=self.VERIFY, timeout=30)
+        r = self._post(self.API_ROOT + '/intelligent/search', json=p)
         if r.status_code == 200:
             if r.json()['status'] == 1:
                 return r.json()['status']
@@ -359,8 +406,11 @@ class intelx:
 
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self.HEADERS
-        r = requests.get(self.API_ROOT + f'/intelligent/search/result?id={id}&limit={limit}', headers=h, proxies=self.PROXIES, verify=self.VERIFY, timeout=30)
+        p = {
+            "id": id,
+            "limit": limit,
+        }
+        r = self._get(self.API_ROOT + f'/intelligent/search/result', params=p)
         if(r.status_code == 200):
             return r.json()
         else:
@@ -371,8 +421,10 @@ class intelx:
         Terminate a previously initialized search based on its UUID.
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self.HEADERS
-        r = requests.get(self.API_ROOT + f'/intelligent/search/terminate?id={uuid}', headers=h, proxies=self.PROXIES, verify=self.VERIFY, timeout=30)
+        p = {
+            "id": uuid,
+        }
+        r = self._get(self.API_ROOT + f'/intelligent/search/terminate', params=p)
         if(r.status_code == 200):
             return True
         else:
@@ -383,7 +435,6 @@ class intelx:
         Initialize a phonebook search and return the ID of the task/search for further processing
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self.HEADERS
         p = {
             "term": term,
             "buckets": buckets,
@@ -397,7 +448,7 @@ class intelx:
             "terminate": terminate,
             "target": target
         }
-        r = requests.post(self.API_ROOT + '/phonebook/search', headers=h, json=p, proxies=self.PROXIES, verify=self.VERIFY, timeout=30)
+        r = self._post(self.API_ROOT + '/phonebook/search', json=p)
         if r.status_code == 200:
             return r.json()['id']
         else:
@@ -417,8 +468,12 @@ class intelx:
         - 3: No results yet, but keep trying.
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self.HEADERS
-        r = requests.get(self.API_ROOT + f'/phonebook/search/result?id={id}&limit={limit}&offset={offset}', headers=h, proxies=self.PROXIES, verify=self.VERIFY, timeout=30)
+        p = {
+            "id": id,
+            "limit": limit,
+            "offset": offset,
+        }
+        r = self._get(self.API_ROOT + f'/phonebook/search/result', params=p)
         if(r.status_code == 200):
             return r.json()
         else:
@@ -439,8 +494,12 @@ class intelx:
         - Specify the name to save the file as (default: sample, extention alway is zip).
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self.HEADERS
-        r = requests.get(self.API_ROOT + f"/intelligent/search/result?id={id}&f={start}&l={end}", headers=h, stream=True, proxies=self.PROXIES, verify=self.VERIFY)
+        p = {
+            "id": id,
+            "f": start,
+            "l": end,
+        }
+        r = self._get(self.API_ROOT + f"/intelligent/search/result", params=p, stream=True)
         if r.status_code == 200:
             with open(f"{filename}.json", "wb") as f:
                 f.write(r.content)
@@ -472,8 +531,12 @@ class intelx:
           b. List of indexed sub-pages for a given website. Use the storage ID from the field "indexfile" in the search result.
         """
         time.sleep(self.API_RATE_LIMIT)
-        h = self.HEADERS
-        r = requests.get(self.API_ROOT + f'/file/view?f=13&storageid={id}&bucket={bucket}', headers=h, proxies=self.PROXIES, verify=self.VERIFY, timeout=30)
+        p = {
+            "f": 13,
+            "storageid": id,
+            "bucket": bucket,
+        }
+        r = self._get(self.API_ROOT + f'/file/view', params=p)
 
         if(r.status_code == 200):
             return r.json()
@@ -616,5 +679,9 @@ class intelx:
 
     def selectors(self, document):
         time.sleep(self.API_RATE_LIMIT)
-        r = requests.get(self.API_ROOT + f'/item/selector/list/human?id={document}&k={self.API_KEY}', proxies=self.PROXIES, verify=self.VERIFY, timeout=30)
+        p = {
+            "id": document,
+            "k": self.API_KEY,
+        }
+        r = self._get(self.API_ROOT + f'/item/selector/list/human', params=p)
         return r.json()['selectors']
