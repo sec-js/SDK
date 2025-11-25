@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Intelx.io - Search API
-  version: 1.0.0
+  version: 0.8.0
   description: |
     Internal search in "buckets" (e.g. usenet, web.public, whois).   Needs `X-Key` header authorization.
   termsOfService: https://intelx.io/terms-of-service
@@ -24,7 +24,7 @@ servers:
       https://free.intelx.io - Free users (who have signed up on intelx.io)
       see https://blog.intelx.io/2025/03/08/new-search-api-instances/
   - url: 'https://3.intelx.io'
-    description: Identity search API      
+    description: Identity Leaks API    
 paths:
   /authenticate/info:
     get:
