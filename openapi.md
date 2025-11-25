@@ -1,12 +1,14 @@
 ---
-title: Intelx.io - Live Search API v1.0.0
+title: Intelx.io - Search API v1.0.0
 language_tabs:
   - shell: Shell
   - http: HTTP
 language_clients:
   - shell: ""
   - http: ""
-toc_footers: []
+toc_footers:
+  - <a href="https://github.com/IntelligenceX/SDK">Software Development Kit
+    (SDK) and reference documents</a>
 includes: []
 search: true
 highlight_theme: darkula
@@ -16,7 +18,7 @@ headingLevel: 2
 
 <!-- Generator: Widdershins v4.0.1 -->
 
-<h1 id="intelx-io-live-search-api">Intelx.io - Live Search API v1.0.0</h1>
+<h1 id="intelx-io-search-api">Intelx.io - Search API v1.0.0</h1>
 
 > Scroll down for code samples, example requests and responses. Select a language for code samples from the tabs above or the mobile navigation menu.
 
@@ -28,15 +30,11 @@ Base URLs:
 
 * <a href="https://3.intelx.io">https://3.intelx.io</a>
 
-License: <a href="https://intelx.io/licenses/LICENSE-1.0">Kleissner Investments v1.0</a>
+<a href="https://intelx.io/terms-of-service">Terms of service</a>
+Email: <a href="mailto:info@intelx.io">Intelligent X</a> Web: <a href="https://intelx.io/">Intelligent X</a> 
+License: <a href="https://intelx.io/product">License and Price</a>
 
-## Basics
-
-The API only uses HTTP GET and POST requests. Payload data is usually JSON encoded. Every request must be authenticated by including an API key in the request. All times are UTC.
-
-This document prerequisites an API key and API URL which you receive separately. Any limitations are stated in your license document.
-
-## Authentication
+# Authentication
 
 * API Key (ApiKeyQueryParam)
     - Parameter Name: **k**, in: query. 
@@ -44,39 +42,7 @@ This document prerequisites an API key and API URL which you receive separately.
 * API Key (ApiKeyAuth)
     - Parameter Name: **X-Key**, in: header. 
 
-Every request must be authenticated with an API key. The API key is an UUID in the format “00000000-0000-0000-0000-000000000000”. The preferred method is sending the API key in the “x-key” header.
-
-Alternatively, you can place the API key as parameter in the URL:
-```
-Format: &k=[key]
-Example: &k=00000000-0000-0000-0000-000000000000
-```
-The API key is tied to your organization. Please make sure to not accidentally leak it to the public.
-
-When using the Intelligence X API as part of your online application or service, make sure to make all requests only server side (for example via PHP or Node.JS) and not client-side via JavaScript/Ajax. If you provide an open source program that uses the API, you must provide a setting for the API key. You may not embed a hard-coded API key.
-
-Visit https://intelx.io/account?tab=developer for obtaining an API key.
-
-## User Agent
-
-Your application must self-identify via the “User-Agent” header. Failure to self-identify may result in revoking your API key, your license and banning your software.
-
-## Limitations and Timeouts
-
-Unless otherwise agreed in your license, please do not hit the API with more than 1 request/second.
-Depending on your license agreement your API key may be restricted to certain functions and may have daily limits on those functions. The API will return HTTP 401 Unauthorized in case your key does not have access to the function.
-Daily limits are implemented as “credits per day per function”. Whether there are daily limits depends on your license. Credits get reset at midnight UTC. In case all credits are used, the API returns HTTP 402 Payment Required.
-Different API instances may have different technical limitations and timeouts. Please refer to your license document for the details.
-
-## Buckets
-
-A bucket is a data category such as “darknet.tor”. Depending on your license your API key may have access only to certain buckets. If your license includes access to a bucket (as example “web”), it means you automatically have access to all buckets that are starting with it (for example “web.public.kp”).
-
-Buckets contain “items”, which are the individual results. Each item has a unique identifier called the “System ID” which is an UUID. Individual results are identified by their System ID. For example, a single historical website copy is an item and has its own System ID. A different historical copy of the same website will have a different System ID.
-
-## Legal
-
-The Intelligence X data, API and use of the service is covered by the Terms of Service published at https://intelx.io/terms-of-service as well as the Privacy Policy at https://intelx.io/privacy-policy.
+<h1 id="intelx-io-search-api-default">Default</h1>
 
 ## Return a JSON object with the current user's API capabilities
 
@@ -299,6 +265,8 @@ File preview
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|OK|None|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Bad request|None|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -307,77 +275,99 @@ ApiKeyQueryParam
 
 ## Read a file's raw contents. Use this for direct data download.
 
-<a id="opIdfileRead"></a>
+<a id="opIdfileView"></a>
 
 > Code samples
 
 ```shell
 # You can also use wget
-curl -X GET https://2.intelx.io/file/read?id=61202067-543e-4e6a-8c23-11f9b8f008cf&type=string&storageid=string&systemid=string \
-  -H 'X-Key: API_KEY'
+curl -X GET https://2.intelx.io/file/view?storageid=string
 
 ```
 
 ```http
-GET https://2.intelx.io/file/read?id=61202067-543e-4e6a-8c23-11f9b8f008cf&type=string&storageid=string&systemid=string HTTP/1.1
+GET https://2.intelx.io/file/view?storageid=string HTTP/1.1
 Host: 2.intelx.io
 
 ```
 
-`GET /file/read`
+`GET /file/view`
 
-id option:
-  - Specifies the item's system ID to read.
-
-type option:
-  - Specifies content disposition or not.
-  - 0: No content disposition. Returns raw binary file.
-  - 1: Content disposition. May fix line endings to CR LF for text files.
-
-bucket option:
-  - Bucket is required.
-
-name option:
-  - Specify the name to save the file as (e.g document.pdf).
+Show a file's contents based on its storageid (sid), convert to text where necessary.
 
 <h3 id="read-a-file's-raw-contents.-use-this-for-direct-data-download.-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|id|query|string|true|Search id (e.g. "61202067-543e-4e6a-8c23-11f9b8f008cf")|
-|type|query|string|true|Types:  |
-|name|query|string|false|Types:  |
-|size|query|integer|false|Optional max &size=[number] as parameter.|
+|f|query|integer|false|format option:|
 |storageid|query|string|true|Either the storage identifier or system identifier has to be specified.|
-|systemid|query|string|true|Either the storage identifier or system identifier has to be specified.|
+|bucket|query|string|false|- Specify the bucket to search|
+|escape|query|integer|false|For text the default behavior (unless overwritten by &escape=0) is to escape HTML characters|
 
 #### Detailed descriptions
 
-**type**: Types:  
-    0 = Raw binary
-    1 = Raw binary with content disposition and optional file &name=[name] as parameter
-    2 = Text view, any non-printable characters shall be removed, UTF-8 encoding. Optional max &size=[number] as parameter.
-    3 = Hex view of data. Optional max &size=[number] as parameter.
-    4 = Auto-detect hex view or text view. Optional max &size=[number] as parameter.
-        The default max size if none is specified is 1 MB.
+**f**: format option:
+- 0: textview of content
+- 1: hex view of content
+- 2: auto detect hex view or text view
+- 3: picture view
+- 4: not supported
+- 5: html inline view (sanitized)
+- 6: text view of pdf
+- 7: text view of html
+- 8: text view of word file
 
-**name**: Types:  
-    1 = Raw binary with content disposition and optional file &name=[name] as parameter
+**bucket**: - Specify the bucket to search
+- See list of buckets https://blog.intelx.io/2022/05/05/list-of-buckets/
 
-**size**: Optional max &size=[number] as parameter.
-The default max size if none is specified is 1 MB.
+**escape**: For text the default behavior (unless overwritten by &escape=0) is to escape HTML characters
+for safe placement of the text in HTML.
+
+#### Enumerated Values
+
+|Parameter|Value|
+|---|---|
+|escape|0|
+|escape|1|
 
 <h3 id="read-a-file's-raw-contents.-use-this-for-direct-data-download.-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|OK|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Data as payload according to the type|None|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid Input|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|item was not found|None|
-|503|[Service Unavailable](https://tools.ietf.org/html/rfc7231#section-6.6.4)|no storage server was available|None|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth
+ApiKeyQueryParam
+</aside>
+
+## servers__intelligent_search
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X SERVERS https://2.intelx.io/intelligent/search
+
+```
+
+```http
+SERVERS https://2.intelx.io/intelligent/search HTTP/1.1
+Host: 2.intelx.io
+
+```
+
+`SERVERS /intelligent/search`
+
+<h3 id="servers__intelligent_search-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+
+<aside class="success">
+This operation does not require authentication
 </aside>
 
 ## Initialize an intelligent search and return the ID of the task/search for further processing.
@@ -445,6 +435,7 @@ Soft selectors (generic terms) are not supported!
 **buckets**: - Specify the buckets to search
 - Example: buckets=[]
 - Example: buckets=['pastes', 'darknet.i2p']
+- See list of buckets https://blog.intelx.io/2022/05/05/list-of-buckets/
 
 **timeout**: - Set a timeout value for the search.
 
@@ -640,6 +631,7 @@ Accept: application/json
 - 24: Text file
 
 **bucket**: - Specify the bucket to search
+- See list of buckets https://blog.intelx.io/2022/05/05/list-of-buckets/
 
 #### Enumerated Values
 
@@ -941,6 +933,7 @@ Lists all selectors for an item from the first selector service that responds wi
 #### Detailed descriptions
 
 **bucket**: - Specify the bucket to search
+- See list of buckets https://blog.intelx.io/2022/05/05/list-of-buckets/
 
 <h3 id="lists-all-selectors-for-an-item-with-human-translation-responses">Responses</h3>
 
@@ -989,9 +982,13 @@ Filename:   "Selectors [System ID].csv"
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|with the data, Content-Disposition set|None|
-|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|item unavailable. This prevents redirection of the user to error page when providing a direct download link.|None|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|invalid input|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Success, with data, Content-Disposition set|None|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Download with content-disposition but item not available. This prevents redirection of the user to error page when providing a direct download link.|None|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid input. Returned if the encoding is invalid or a required parameter is missing.|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized Authenticate: Access not authorized. 
+This may be due missing permission for API call or to selected buckets.|None|
+|402|[Payment Required](https://tools.ietf.org/html/rfc7231#section-6.5.2)|Payment Required Authenticate: No credits available.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Not Found Item or identifier not found.|None|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -1036,6 +1033,7 @@ Host: 2.intelx.io
 **buckets**: - Specify the buckets to search
 - Example: buckets=[]
 - Example: buckets=['pastes', 'darknet.i2p']
+- See list of buckets https://blog.intelx.io/2022/05/05/list-of-buckets/
 
 **maxresults**: - Tells how many results to query maximum per bucket.
 
@@ -1274,6 +1272,7 @@ Initiates the search; will return status and search Id on success.
 #### Detailed descriptions
 
 **bucket**: - Specify the bucket to search
+- See list of buckets https://blog.intelx.io/2022/05/05/list-of-buckets/
 
 > Example responses
 
@@ -1318,26 +1317,24 @@ ApiKeyAuth
 
 ## Fetch results from internal live search
 
-<a id="opIdliveSearchResult"></a>
+<a id="opIdaccountsCsv"></a>
 
 > Code samples
 
 ```shell
 # You can also use wget
-curl -X GET https://2.intelx.io/live/search/result?id=61202067-543e-4e6a-8c23-11f9b8f008cf \
-  -H 'Accept: application/json' \
+curl -X GET https://2.intelx.io/accounts/csv?selector=info%40intelx.io \
   -H 'X-Key: API_KEY'
 
 ```
 
 ```http
-GET https://2.intelx.io/live/search/result?id=61202067-543e-4e6a-8c23-11f9b8f008cf HTTP/1.1
+GET https://2.intelx.io/accounts/csv?selector=info%40intelx.io HTTP/1.1
 Host: 2.intelx.io
-Accept: application/json
 
 ```
 
-`GET /live/search/result`
+`GET /accounts/csv`
 
 Initiates the search; will return status and search Id on success. Status = 2 means end of search result. Good manners is to wait 1s before each new result fetch.
 
@@ -1345,53 +1342,53 @@ Initiates the search; will return status and search Id on success. Status = 2 me
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|id|query|string|true|Search id (e.g. "61202067-543e-4e6a-8c23-11f9b8f008cf")|
-|format|query|integer|false|Format Info 0 Text view, any non-printable characters shall be removed, UTF-8 encoding. 1 Hex view of data. 2 Auto-detect hex view or text view. 3 Picture view. 4 Not supported. 5 HTML inline view. Content will be sanitized and modified! 6 Text view of PDF. Content will be automatically converted. 7 Text view of HTML. 8 Text view of Word files (DOC/DOCX/RTF).|
+|selector|query|string|true|Search term|
+|bucket|query|string|false|- Specify the bucket to search|
 |limit|query|integer|false|Result limit|
+|datefrom|query|string(date-time)|false|Date from of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)|
+|dateto|query|string(date-time)|false|Date to of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)|
+|terminate|query|array[string]|false|You can terminate previous search ids|
 
 #### Detailed descriptions
 
-**format**: Format Info 0 Text view, any non-printable characters shall be removed, UTF-8 encoding. 1 Hex view of data. 2 Auto-detect hex view or text view. 3 Picture view. 4 Not supported. 5 HTML inline view. Content will be sanitized and modified! 6 Text view of PDF. Content will be automatically converted. 7 Text view of HTML. 8 Text view of Word files (DOC/DOCX/RTF).
-
-> Example responses
-
-> 200 Response
-
-```json
-{
-  "status": 0,
-  "results": "string"
-}
-```
+**bucket**: - Specify the bucket to search
+- See list of buckets https://blog.intelx.io/2022/05/05/list-of-buckets/
 
 <h3 id="fetch-results-from-internal-live-search-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Success search|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid data|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Invalid api token|None|
-
-<h3 id="fetch-results-from-internal-live-search-responseschema">Response Schema</h3>
-
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» status|integer|false|none|Result status 0,1 - there is another result/s to fetch 2 - no more results|
-|» results|string|false|none|Text response|
-
-#### Enumerated Values
-
-|Property|Value|
-|---|---|
-|status|0|
-|status|1|
-|status|2|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
 ApiKeyAuth
+</aside>
+
+## servers__accounts_csv
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X SERVERS https://2.intelx.io/accounts/csv
+
+```
+
+```http
+SERVERS https://2.intelx.io/accounts/csv HTTP/1.1
+Host: 2.intelx.io
+
+```
+
+`SERVERS /accounts/csv`
+
+<h3 id="servers__accounts_csv-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+
+<aside class="success">
+This operation does not require authentication
 </aside>
 
 # Schemas
@@ -1605,151 +1602,4 @@ and
 |» bucketh|string|false|none|Human friendly bucket name|
 |» group|string|false|none|File group|
 |» indexfile|string|false|none|Index file ID|
-
-<h2 id="tocS_IntelligentSearchResult">IntelligentSearchResult</h2>
-<!-- backwards compatibility -->
-<a id="schemaintelligentsearchresult"></a>
-<a id="schema_IntelligentSearchResult"></a>
-<a id="tocSintelligentsearchresult"></a>
-<a id="tocsintelligentsearchresult"></a>
-
-```json
-{
-  "records": [
-    {
-      "systemid": "45fdc0d2-2550-4e66-8447-a21268d60b5a",
-      "storageid": "string",
-      "instore": true,
-      "size": 0,
-      "accesslevel": 0,
-      "type": 0,
-      "media": 0,
-      "added": "2019-08-24T14:15:22Z",
-      "date": "2019-08-24T14:15:22Z",
-      "name": "string",
-      "description": "string",
-      "xscore": 100,
-      "simhash": 0,
-      "bucket": "string",
-      "tags": [
-        {
-          "class": 0,
-          "value": "string"
-        }
-      ],
-      "relations": [
-        {
-          "target": "65a17d54-9c67-4477-8b80-d3f97e165aa5",
-          "relation": 0
-        }
-      ],
-      "accesslevelh": "string",
-      "mediah": "string",
-      "simhashh": "string",
-      "typeh": "string",
-      "tagsh": [
-        {
-          "class": 0,
-          "classh": "string",
-          "value": "string",
-          "valueh": "string"
-        }
-      ],
-      "randomid": "b2890775-4beb-4d72-9035-427f789d4e63",
-      "bucketh": "string",
-      "group": "string",
-      "indexfile": "string"
-    }
-  ],
-  "status": 0
-}
-
-```
-
-Contains search result records and status.
-
-### Properties
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|records|[[SearchResult](#schemasearchresult)]|false|none|Result records|
-|status|integer|true|none|Status:<br>  0 = Success with results (continue)<br>  1 = No more results available<br>  2 = Search ID not found<br>  3 = No results yet available, keep trying<br>  4 = Error|
-
-<h2 id="tocS_IntelligentSearchResponse">IntelligentSearchResponse</h2>
-<!-- backwards compatibility -->
-<a id="schemaintelligentsearchresponse"></a>
-<a id="schema_IntelligentSearchResponse"></a>
-<a id="tocSintelligentsearchresponse"></a>
-<a id="tocsintelligentsearchresponse"></a>
-
-```json
-{
-  "id": "497f6eca-6276-4993-bfeb-53cbbbba6f08",
-  "softselectorwarning": true,
-  "status": 0
-}
-
-```
-
-Response returned by /intelligent/search.
-
-### Properties
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|id|string(uuid)|true|none|ID of the search job|
-|softselectorwarning|boolean|false|none|Warning about soft selectors|
-|status|integer|true|none|Status:<br>  0 = Success (ID valid)<br>  1 = Invalid term<br>  2 = Error: max concurrent searches|
-
-<h2 id="tocS_IntelligentSearchRequest">IntelligentSearchRequest</h2>
-<!-- backwards compatibility -->
-<a id="schemaintelligentsearchrequest"></a>
-<a id="schema_IntelligentSearchRequest"></a>
-<a id="tocSintelligentsearchrequest"></a>
-<a id="tocsintelligentsearchrequest"></a>
-
-```json
-{
-  "term": "string",
-  "buckets": [
-    "string"
-  ],
-  "timeout": 0,
-  "maxresults": 0,
-  "datefrom": "string",
-  "dateto": "string",
-  "sort": 0,
-  "media": 0,
-  "terminate": [
-    "497f6eca-6276-4993-bfeb-53cbbbba6f08"
-  ]
-}
-
-```
-
-Request body for intelligent search.
-
-### Properties
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|term|string|true|none|Search term submitted by the user|
-|buckets|[string]|false|none|Bucket identifiers|
-|timeout|integer(int32)|false|none|Timeout in seconds. 0 means default.|
-|maxresults|integer(int32)|false|none|Total number of max results per bucket. 0 means default.|
-|datefrom|string|false|none|Date from in `YYYY-mm-dd HH:ii:ss` format (not RFC3339).|
-|dateto|string|false|none|Date to in `YYYY-mm-dd HH:ii:ss` format (not RFC3339).|
-|sort|integer|false|none|Sort order:<br>  0 = No sorting<br>  1 = X-Score ASC<br>  2 = X-Score DESC<br>  3 = Date ASC<br>  4 = Date DESC|
-|media|integer|false|none|Media type. 0 = not defined.|
-|terminate|[string]|false|none|Previous search IDs to terminate|
-
-#### Enumerated Values
-
-|Property|Value|
-|---|---|
-|sort|0|
-|sort|1|
-|sort|2|
-|sort|3|
-|sort|4|
 
