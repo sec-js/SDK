@@ -1,8 +1,6 @@
 import time
 
-import requests
 from .intelxapi import intelx
-
 
 class IdentityService(intelx):
 
@@ -10,8 +8,7 @@ class IdentityService(intelx):
 
     def get_search_results(self, id, format=1, maxresults=100):
         params = {'id': id, 'format': format, 'limit': maxresults}
-        r = requests.get(self.API_ROOT + '/live/search/result',
-                         params, headers=self.HEADERS, timeout=30)
+        r = self._get('/live/search/result', params)
         if r.status_code == 200:
             return r.json()
         else:
@@ -31,8 +28,7 @@ class IdentityService(intelx):
         }
         done = False
         results = []
-        r = requests.get(self.API_ROOT + '/live/search/internal',
-                         headers=self.HEADERS, params=p, timeout=30)
+        r = self._get('/live/search/internal', params=p)
         if r.status_code == 200:
             search_id = r.json()['id']
         else:
@@ -62,8 +58,7 @@ class IdentityService(intelx):
         p = {
             "id": id,
         }
-        r = requests.get(self.API_ROOT + '/live/search/internal',
-                         headers=self.HEADERS, params=p, timeout=30)
+        r = self._get('/live/search/internal', params=p)
         if r.status_code == 204:
             return (r.status_code, r.text)
         else:
@@ -80,8 +75,7 @@ class IdentityService(intelx):
         }
         done = False
         results = []
-        r = requests.get(self.API_ROOT + '/accounts/csv',
-                         headers=self.HEADERS, params=p, timeout=30)
+        r = self._get('/accounts/csv', params=p)
         if r.status_code == 200:
             search_id = r.json()['id']
             if (len(str(search_id)) <= 3):
@@ -116,8 +110,7 @@ class IdentityService(intelx):
         }
         done = False
         results = []
-        r = requests.get(self.API_ROOT + '/reverse/domain',
-                        headers=self.HEADERS, params=p, timeout=30)
+        r = self._get('/reverse/domain', params=p)
         if r.status_code == 200:
             search_id = r.json()['id']
             if len(str(search_id)) <= 3:

@@ -49,6 +49,8 @@ class intelx:
             verify = self.VERIFY
         if timeout is None:
             timeout = self.TIMEOUT
+        if not url.startswith(("https://", "http://")):
+            url = self.API_ROOT + url
 
         return requests.get(url, params=params, headers=headers, proxies=proxies, verify=verify, timeout=timeout, **kwargs )
 
@@ -61,6 +63,8 @@ class intelx:
             verify = self.VERIFY
         if timeout is None:
             timeout = self.TIMEOUT
+        if not url.startswith(("https://", "http://")):
+            url = self.API_ROOT + url
 
         return requests.post(url, data=data, json=json, headers=headers, proxies=proxies, verify=verify, timeout=timeout, **kwargs, )
 
@@ -102,7 +106,7 @@ class intelx:
         Return a JSON object with the current user's API capabilities
         """
         time.sleep(self.API_RATE_LIMIT)
-        r = self._get(f"{self.API_ROOT}/authenticate/info")
+        r = self._get("/authenticate/info")
         if r.status_code == 200:        
             return r.json()
         else:
@@ -126,7 +130,7 @@ class intelx:
             "l": lines,
             "k": self.API_KEY,
         }
-        r = self._get(f"{self.API_ROOT}/file/preview", params=p)
+        r = self._get("/file/preview", params=p)
         return r.text
 
     def FILE_VIEW(self, ctype, mediatype, sid, bucket='', escape=0):
@@ -169,7 +173,7 @@ class intelx:
             "escape": escape,
             "k": self.API_KEY,
         }
-        r = self._get(f"{self.API_ROOT}/file/view", params=p)
+        r = self._get("/file/view", params=p)
         return r.text
 
     def FILE_READ(self, id, type=0, bucket="", filename=""):
@@ -196,7 +200,7 @@ class intelx:
             "systemid": id,
             "bucket": bucket,
         }
-        r = self._get(f"{self.API_ROOT}/file/read", params=p, stream=True)
+        r = self._get("/file/read", params=p, stream=True)
         with open(f"{filename}", "wb") as f:
             f.write(r.content)
             f.close()
@@ -213,7 +217,7 @@ class intelx:
                 "storageid": sid,
                 "k": self.API_KEY,
             }
-            r = self._get(f"{self.API_ROOT}/file/view", params=p, timeout=5)
+            r = self._get("/file/view", params=p, timeout=5)
             if "Could not generate" in r.text:
                 return False
             return r.text
@@ -315,7 +319,7 @@ class intelx:
             "terminate": terminate
         }
         time.sleep(self.API_RATE_LIMIT)
-        r = self._post(self.API_ROOT + '/intelligent/search', json=p)
+        r = self._post('/intelligent/search', json=p)
         if r.status_code == 200:
             if r.json()['status'] == 1:
                 return r.json()['status']
@@ -410,7 +414,7 @@ class intelx:
             "id": id,
             "limit": limit,
         }
-        r = self._get(self.API_ROOT + f'/intelligent/search/result', params=p)
+        r = self._get('/intelligent/search/result', params=p)
         if(r.status_code == 200):
             return r.json()
         else:
@@ -424,7 +428,7 @@ class intelx:
         p = {
             "id": uuid,
         }
-        r = self._get(self.API_ROOT + f'/intelligent/search/terminate', params=p)
+        r = self._get('/intelligent/search/terminate', params=p)
         if(r.status_code == 200):
             return True
         else:
@@ -448,7 +452,7 @@ class intelx:
             "terminate": terminate,
             "target": target
         }
-        r = self._post(self.API_ROOT + '/phonebook/search', json=p)
+        r = self._post('/phonebook/search', json=p)
         if r.status_code == 200:
             return r.json()['id']
         else:
@@ -473,7 +477,7 @@ class intelx:
             "limit": limit,
             "offset": offset,
         }
-        r = self._get(self.API_ROOT + f'/phonebook/search/result', params=p)
+        r = self._get('/phonebook/search/result', params=p)
         if(r.status_code == 200):
             return r.json()
         else:
@@ -499,7 +503,7 @@ class intelx:
             "f": start,
             "l": end,
         }
-        r = self._get(self.API_ROOT + f"/intelligent/search/result", params=p, stream=True)
+        r = self._get("/intelligent/search/result", params=p, stream=True)
         if r.status_code == 200:
             with open(f"{filename}.json", "wb") as f:
                 f.write(r.content)
@@ -536,7 +540,7 @@ class intelx:
             "storageid": id,
             "bucket": bucket,
         }
-        r = self._get(self.API_ROOT + f'/file/view', params=p)
+        r = self._get('/file/view', params=p)
 
         if(r.status_code == 200):
             return r.json()
@@ -683,5 +687,5 @@ class intelx:
             "id": document,
             "k": self.API_KEY,
         }
-        r = self._get(self.API_ROOT + f'/item/selector/list/human', params=p)
+        r = self._get('/item/selector/list/human', params=p)
         return r.json()['selectors']
