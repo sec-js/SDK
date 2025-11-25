@@ -40,7 +40,7 @@ python -m pip install -e .
 
 Open the Dev Container and get a shell (VS Code)
 
-1. Open the folder that contains **.devcontainer/** (next to **Dockerfile** and **requirements.txt**) in **VS Code**.
+1. Open the folder **Python** (that contains **.devcontainer/**, next to **Dockerfile** and **requirements.txt**) in **VS Code**.
 2. Ensure **Docker** is running and the **Dev Containers** extension is installed.
 3. Press **Ctrl+Shift+P** → **Dev Containers: Reopen in Container**  
    - If you changed the Dockerfile/requirements: **Dev Containers: Rebuild and Reopen in Container**.
@@ -62,19 +62,30 @@ To specify the API key to use, you can choose one of two options:
 * Setting the `INTELX_KEY` environment variable.
 * Manually supplying the `-apikey` argument.
 
-You can get your API key [here](https://intelx.io/account?tab=developer)
+You can get your API key https://intelx.io/account?tab=developer
 
 ### Environment Variable
 
+Copy ```.env.sample``` to ```.env``` and set your values. You can create also yours *proxies* and *verify* settings.
+
 ```bash
 # create an INTELX_KEY env var with your API key.
-export INTELX_KEY=00000000-0000-0000-0000-000000000000
+INTELX_KEY="00000000-0000-0000-0000-000000000000"
+INTELX_BASE_URL="https://2.intelx.io"
 ```
 
 ### Via the client
 
 ```bash
-intelx.py -search riseup.net -apikey 00000000-0000-0000-0000-000000000000
+ export INTELX_APIKEY=00000000-0000-0000-0000-000000000000
+
+intelx.py -search riseup.net -apikey "$INTELX_APIKEY"
+```
+
+or, when running directly from the source tree:
+
+```bash
+python -m scripts.intelx -search riseup.net -apikey "$INTELX_APIKEY"
 ```
 
 ## Configuration
@@ -173,7 +184,7 @@ Once you have done that, you can use any of the functions defined in the class.
 ## Quick search
 
 To execute a quick search, we can easily just use the `intelx.search()`
-function.
+function. See **examples/** folder.
 
 ```python
 from intelxapi import intelx

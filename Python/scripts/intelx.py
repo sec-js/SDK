@@ -8,9 +8,9 @@ import json
 import time
 import tabulate
 import argparse
-from importlib.metadata import version
-from intelxapi import intelx
-from intelx_identity import IdentityService
+from importlib.metadata import version, PackageNotFoundError
+from intelx import intelx
+from intelx import IdentityService
 from termcolor import colored
 from pygments import highlight
 from pygments.lexers import JsonLexer
@@ -108,6 +108,13 @@ def idsearch(identity_ix, query, maxresults=100, buckets=[], timeout=5, datefrom
     s = identity_ix.search(term=query, maxresults=maxresults, buckets=buckets, timeout=timeout, datefrom=datefrom, dateto=dateto,  terminate=terminate)
     return s
 
+# workaround when package is not installed
+def safe_version(name: str) -> str:
+    try:
+        return version(name)
+    except PackageNotFoundError:
+        return "-dev"
+
 def main(argv=None):
 
     global search
@@ -161,13 +168,13 @@ def main(argv=None):
 
     else:
         print(banner)
-        print('intelx.py v' + str(version('intelx')))
+        print('intelx.py v' + str(safe_version('intelx')))
         exit('No API key specified. Please use the "-apikey" parameter or set the environment variable "INTELX_KEY".')
 
     # main application flow
     if not args.raw:
         print(banner)
-        print('intelx.py v' + str(version('intelx')))
+        print('intelx.py v' + str(safe_version('intelx')))
 
     if len(sys.argv) < 2:
         print('Usage: intelx.py -search "riseup.net"')
