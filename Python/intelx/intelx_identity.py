@@ -1,7 +1,7 @@
 import time
 
 import requests
-from intelxapi import intelx
+from .intelxapi import intelx
 
 
 class IdentityService(intelx):
