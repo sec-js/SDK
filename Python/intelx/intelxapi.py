@@ -520,6 +520,17 @@ class intelx:
         results = self.INTEL_SEARCH_RESULT(id, limit)
         return results
 
+    def exportfromsearch(self, term, maxresults=100, buckets=[], timeout=5, datefrom="", dateto="", sort=4, media=0, terminate=[], filename=None):
+        search_id = self.INTEL_SEARCH(term, maxresults, buckets, timeout, datefrom, dateto, sort, media, terminate)
+        if(len(str(search_id)) <= 3):
+            print(f"[!] intelx.INTEL_SEARCH() Received {self.get_error(search_id)}")
+            sys.exit()
+        if filename is None:
+            timestamp = time.strftime("%y%m%d%H%M%S", time.localtime())
+            filename = f"intelx_export_{timestamp}"
+        r = self.INTEL_EXPORT(search_id, 1, maxresults, filename)
+        return r
+
     def query_pb_results(self, id, limit):
         """
         Query the results from a phonebook search.
