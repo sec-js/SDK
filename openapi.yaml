@@ -3,7 +3,9 @@ info:
   title: Intelx.io - Search API
   version: 0.8.0
   description: |
-    Internal search in "buckets" (e.g. usenet, web.public, whois).   Needs `X-Key` header authorization.
+    Internal search in "buckets" (e.g. usenet, web.public, whois). 
+    Needs `X-Key` header authorization, or as k=[key] query parameter.
+    The API will return HTTP 401 Unauthorized in case the API key is invalid or not authorized. 
   termsOfService: https://intelx.io/terms-of-service
   contact:  
     name: "Intelligent X"
@@ -24,7 +26,10 @@ servers:
       https://free.intelx.io - Free users (who have signed up on intelx.io)
       see https://blog.intelx.io/2025/03/08/new-search-api-instances/
   - url: 'https://3.intelx.io'
-    description: Identity Leaks API    
+    description: |
+      Identity Leaks API    
+        1. Search for a term and return each line where it appears. 
+        2. Export leaked accounts as CSV. 
 paths:
   /authenticate/info:
     get:
@@ -658,6 +663,12 @@ paths:
       operationId: liveSearch
       description: |
         Initiates the search; will return status and search Id on success.
+        Limit means max amount of records per bucket to return. Default 10.
+        - Selector: Must be an email address, domain, social security number (US based), or credit card number. 
+        - Limit: In some cases, the API might return more results than specified in limit. If an upper hard limit is required, it must be enforced on the client side. 
+        - Bucket: Optional filter for searching only in the target bucket. See Appendix 1 for list. 
+        - In case a user makes a new search and the previous one shall be discarded; its search ID shall be specified in the “terminate” parameter to save system resources. Searches may consume Gigabytes of data, therefore any searches that are no longer required shall be terminated. Searches can also be manually terminated via the /live/search/terminate function. 
+        - Dates: From/to dates may be used as filter. Note that item’s dates are set to when the original data was published if available, or otherwise when it was indexed. This means that newly indexed items are often backdated. 
       parameters:
         - name: selector
           in: query
@@ -667,7 +678,7 @@ paths:
           schema:
             type: string
           example: info@intelx.io
-          description: Search term
+          description: Selector to search for
         - $ref: '#/components/parameters/OneBucketParam'
         - name: skipinvalid
           in: query
@@ -675,7 +686,7 @@ paths:
           schema:
             type: boolean
             default: false
-          description: Skip invalid records
+          description: Specify to skip invalid entries (recommended). Default false. 
         - $ref: '#/components/parameters/LimitParam'
         - name: analyze
           in: query
@@ -683,7 +694,7 @@ paths:
           schema:
             type: boolean
             default: false
-          description: Analyze
+          description: Default false.
         - name: datefrom
           in: query
           required: false
@@ -718,25 +729,64 @@ paths:
                     type: string
                     example: '61202067-543e-4e6a-8c23-11f9b8f008cf'
                     pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                required:
+                  - status
+                  - id
           links:
             LiveSearchResult:
               operationId: liveSearchResult
               parameters:
                 id: $response.body#/id
         '400':
-          description: Invalid data
+          description: Invalid input
         '401':
           description: Invalid api token
       security:
         - ApiKeyAuth: []
+  /live/search/terminate:
+    servers:
+      - url: 'https://3.intelx.io'
+    get:
+      summary: Terminating search
+      operationId: liveSearchTerminate
+      description: |
+        To terminate an active search or export, use this function. Terminating a search that is no longer needed saves system resources. 
+        Since searches may read and process Gigabytes of data, it is highly appreciated if users terminate searches that are no longer needed. 
+
+        Terminating a search that is already terminated has no effect. 
+      parameters:
+        - $ref: '#/components/parameters/SearchIdParam'
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '204':
+          description: Success with no content
+        '400':
+          description: Invalid input
+
   /live/search/result:
     servers:
       - url: 'https://3.intelx.io'
     get:
+      security:
+        - ApiKeyAuth: []
       summary: Fetch results from internal live search
       operationId: liveSearchResult
       description: |
-        Initiates the search; will return status and search Id on success. Status = 2 means end of search result. Good manners is to wait 1s before each new result fetch.
+        Initiates the search; will return status and search Id on success. 
+        Status = 2 means end of search result. Good manners is to wait 1s before each new result fetch.
+        
+        Depending on the format parameter the response uses the text field, the records field, or both. 
+        Text is HTML encoded and intended for direct visualization to the end-user. Use format=1 for machine processing.  
+        
+        The response uses the following JSON structure. The status indicates whether results are available and whether the client 
+        shall continue to fetch for results. 
+        
+        Status 
+          - 0 means there are results in the response, 
+          - 1 means there is currently no result in the response, but the client should continue to fetch for results. 
+          - 2 (Terminated) and 
+          - 3 (Search ID Not Found) tell the client to stop querying for results. Note that with status 2 there might be the last results in the response. 
       parameters:
         - $ref: '#/components/parameters/SearchIdParam'
         - name: format
@@ -744,9 +794,11 @@ paths:
           required: false
           schema:
             type: integer
+            enum: [0, 1, 2]
             default: 0
           description: |
-            Format Info 0 Text view, any non-printable characters shall be removed, UTF-8 encoding. 1 Hex view of data. 2 Auto-detect hex view or text view. 3 Picture view. 4 Not supported. 5 HTML inline view. Content will be sanitized and modified! 6 Text view of PDF. Content will be automatically converted. 7 Text view of HTML. 8 Text view of Word files (DOC/DOCX/RTF).
+            Return only specified fields: 0 = Text only, default 1 = Records only 2 = Return both fields 
+
         - $ref: '#/components/parameters/LimitParam'
       responses:
         '200':
@@ -769,18 +821,20 @@ paths:
           description: Invalid data
         '401':
           description: Invalid api token
-      security:
-        - ApiKeyAuth: []
   /accounts/csv:
     servers:
       - url: 'https://3.intelx.io'
     get:
       security:
-        - ApiKeyAuth: [ ]
+        - ApiKeyAuth: []
       summary: Fetch results from internal live search
       operationId: accountsCsv
       description: |
-        Initiates the search; will return status and search Id on success. Status = 2 means end of search result. Good manners is to wait 1s before each new result fetch.
+        This is the API used by the “Export Leaked Accounts” tab of the Identity Portal. It only supports domains and email addresses as input.         
+        
+        The response is the same as for /live/search/internal, returning a status and the search job ID. In case a user makes a new export and the previous one shall be discarded; 
+        its search ID shall be specified in the “terminate” parameter to save system resources. Searches may consume Gigabytes of data, therefore any searches that are no longer 
+        required shall be terminated. Searches can also be manually terminated via the /live/search/terminate function. 
       parameters:
         - name: selector
           in: query
@@ -811,7 +865,65 @@ paths:
             example: '2024-01-31 23:59:59'
             pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
           description: Date to of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)
+        - $ref: '#/components/parameters/TerminateParam'    
+      responses:
+        '200':
+          description: Success with JSON LiveSearchResponse 
+        '400':
+          description: Invalid input
+  /accounts/1:
+    servers:
+      - url: 'https://3.intelx.io'
+    get:
+      security:
+        - ApiKeyAuth: [ ]
+      summary: Synchronous Export Leaked Accounts 
+      operationId: accounts1
+      description: |
+        Use this function to query leaked accounts and return them immediately. 
+        
+        Note: You should use the asynchronous function /accounts/csv as this one might miss results that are not available within the given timeout. 
+        Searching for leaked accounts may take minutes, especially when searching for domains that have thousands of results. Internally the API
+        must fetch the entire data for each individual result which often results internally in Gigabytes of traffic and potentially causes delays. 
+
+        The default timeout is 10 minutes. The client must make sure to allow for such high HTTP timeouts on the client side. The timeout must not be higher than 1 hour, which is the HTTP server write timeout. 
+      parameters:
+        - name: selector
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: info@intelx.io
+          description: Search term
+        - $ref: '#/components/parameters/OneBucketParam'
+        - $ref: '#/components/parameters/LimitParam'      
+        - $ref: '#/components/parameters/TimeoutParam'
+        - name: datefrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2024-01-01 00:00:00'
+            pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+          description: Date from of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)
+        - name: dateto
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2024-01-31 23:59:59'
+            pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+          description: Date to of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)
         - $ref: '#/components/parameters/TerminateParam'
+      responses:
+        '200':
+          description: JSON array of CSVRecord 
+        '400':
+          description: Invalid input
 components:
   securitySchemes:
     ApiKeyQueryParam:
@@ -833,7 +945,7 @@ components:
         type: integer
       example: 30
       description: |
-        - Set a timeout value for the search.
+        - Set a timeout value for the search. If omitted or set to 0, the default is used. 
     MediaParam:
       name: media
       in: query
@@ -880,7 +992,7 @@ components:
           type: string
           format: uuid
       style: form
-      description: You can terminate previous search ids
+      description: "Optional: ID of previous search to terminate to save system resources."
     MaxresultsParam:
       name: maxresults
       in: query

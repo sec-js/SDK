@@ -22,7 +22,9 @@ headingLevel: 2
 
 > Scroll down for code samples, example requests and responses. Select a language for code samples from the tabs above or the mobile navigation menu.
 
-Internal search in "buckets" (e.g. usenet, web.public, whois).   Needs `X-Key` header authorization.
+Internal search in "buckets" (e.g. usenet, web.public, whois). 
+Needs `X-Key` header authorization, or as k=[key] query parameter.
+The API will return HTTP 401 Unauthorized in case the API key is invalid or not authorized. 
 
 Base URLs:
 
@@ -402,13 +404,13 @@ Initialize an intelligent search and return the ID of the task/search for furthe
 |term|query|string|true|The term must be a strong selector. These selector types are currently supported:|
 |maxresults|query|integer|true|- Tells how many results to query maximum per bucket.|
 |buckets|query|string|false|- Specify the buckets to search|
-|timeout|query|integer|true|- Set a timeout value for the search.|
+|timeout|query|integer|true|- Set a timeout value for the search. If omitted or set to 0, the default is used. |
 |datefrom|query|string|true|- Set a starting date to begin the search from.|
 |dateto|query|string|true|- Set an ending date to finish the search from.|
 |sort|query|integer|true|- Define the way to sort search results.|
 |media|query|integer|true|- Define the type of media to search for.|
 |lookuplevel|query|integer|false|lookuplevel|
-|terminate|query|array[string]|false|You can terminate previous search ids|
+|terminate|query|array[string]|false|Optional: ID of previous search to terminate to save system resources.|
 
 #### Detailed descriptions
 
@@ -437,7 +439,7 @@ Soft selectors (generic terms) are not supported!
 - Example: buckets=['pastes', 'darknet.i2p']
 - See list of buckets https://blog.intelx.io/2022/05/05/list-of-buckets/
 
-**timeout**: - Set a timeout value for the search.
+**timeout**: - Set a timeout value for the search. If omitted or set to 0, the default is used. 
 
 **datefrom**: - Set a starting date to begin the search from.
 - Example: 2020-01-01 00:00:00
@@ -1024,9 +1026,9 @@ Host: 2.intelx.io
 |target|query|integer|true|none|
 |buckets|query|string|false|- Specify the buckets to search|
 |maxresults|query|integer|true|- Tells how many results to query maximum per bucket.|
-|timeout|query|integer|true|- Set a timeout value for the search.|
+|timeout|query|integer|true|- Set a timeout value for the search. If omitted or set to 0, the default is used. |
 |media|query|integer|true|- Define the type of media to search for.|
-|terminate|query|array[string]|false|You can terminate previous search ids|
+|terminate|query|array[string]|false|Optional: ID of previous search to terminate to save system resources.|
 
 #### Detailed descriptions
 
@@ -1037,7 +1039,7 @@ Host: 2.intelx.io
 
 **maxresults**: - Tells how many results to query maximum per bucket.
 
-**timeout**: - Set a timeout value for the search.
+**timeout**: - Set a timeout value for the search. If omitted or set to 0, the default is used. 
 
 **media**: - Define the type of media to search for.
 - 0: Not set. (All media types)
@@ -1255,19 +1257,25 @@ Accept: application/json
 `GET /live/search/internal`
 
 Initiates the search; will return status and search Id on success.
+Limit means max amount of records per bucket to return. Default 10.
+- Selector: Must be an email address, domain, social security number (US based), or credit card number. 
+- Limit: In some cases, the API might return more results than specified in limit. If an upper hard limit is required, it must be enforced on the client side. 
+- Bucket: Optional filter for searching only in the target bucket. See Appendix 1 for list. 
+- In case a user makes a new search and the previous one shall be discarded; its search ID shall be specified in the “terminate” parameter to save system resources. Searches may consume Gigabytes of data, therefore any searches that are no longer required shall be terminated. Searches can also be manually terminated via the /live/search/terminate function. 
+- Dates: From/to dates may be used as filter. Note that item’s dates are set to when the original data was published if available, or otherwise when it was indexed. This means that newly indexed items are often backdated. 
 
 <h3 id="internal-live-search-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|selector|query|string|true|Search term|
+|selector|query|string|true|Selector to search for|
 |bucket|query|string|false|- Specify the bucket to search|
-|skipinvalid|query|boolean|false|Skip invalid records|
+|skipinvalid|query|boolean|false|Specify to skip invalid entries (recommended). Default false.|
 |limit|query|integer|false|Result limit|
-|analyze|query|boolean|false|Analyze|
+|analyze|query|boolean|false|Default false.|
 |datefrom|query|string(date-time)|false|Date from of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)|
 |dateto|query|string(date-time)|false|Date to of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)|
-|terminate|query|array[string]|false|You can terminate previous search ids|
+|terminate|query|array[string]|false|Optional: ID of previous search to terminate to save system resources.|
 
 #### Detailed descriptions
 
@@ -1290,7 +1298,7 @@ Initiates the search; will return status and search Id on success.
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Success search|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid data|None|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid input|None|
 |401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Invalid api token|None|
 
 <h3 id="internal-live-search-responseschema">Response Schema</h3>
@@ -1299,8 +1307,8 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» status|integer|false|none|Result status|
-|» id|string|false|none|none|
+|» status|integer|true|none|Result status|
+|» id|string|true|none|none|
 
 #### Links
 
@@ -1309,6 +1317,50 @@ Status Code **200**
 |Parameter|Expression|
 |---|---|
 |id|$response.body#/id|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+ApiKeyAuth
+</aside>
+
+## Terminating search
+
+<a id="opIdliveSearchTerminate"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET https://2.intelx.io/live/search/terminate?id=61202067-543e-4e6a-8c23-11f9b8f008cf \
+  -H 'X-Key: API_KEY'
+
+```
+
+```http
+GET https://2.intelx.io/live/search/terminate?id=61202067-543e-4e6a-8c23-11f9b8f008cf HTTP/1.1
+Host: 2.intelx.io
+
+```
+
+`GET /live/search/terminate`
+
+To terminate an active search or export, use this function. Terminating a search that is no longer needed saves system resources. 
+Since searches may read and process Gigabytes of data, it is highly appreciated if users terminate searches that are no longer needed. 
+
+Terminating a search that is already terminated has no effect. 
+
+<h3 id="terminating-search-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|id|query|string|true|Search id (e.g. "61202067-543e-4e6a-8c23-11f9b8f008cf")|
+
+<h3 id="terminating-search-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Success with no content|None|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid input|None|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -1336,7 +1388,11 @@ Host: 2.intelx.io
 
 `GET /accounts/csv`
 
-Initiates the search; will return status and search Id on success. Status = 2 means end of search result. Good manners is to wait 1s before each new result fetch.
+This is the API used by the “Export Leaked Accounts” tab of the Identity Portal. It only supports domains and email addresses as input.         
+
+The response is the same as for /live/search/internal, returning a status and the search job ID. In case a user makes a new export and the previous one shall be discarded; 
+its search ID shall be specified in the “terminate” parameter to save system resources. Searches may consume Gigabytes of data, therefore any searches that are no longer 
+required shall be terminated. Searches can also be manually terminated via the /live/search/terminate function. 
 
 <h3 id="fetch-results-from-internal-live-search-parameters">Parameters</h3>
 
@@ -1347,7 +1403,7 @@ Initiates the search; will return status and search Id on success. Status = 2 me
 |limit|query|integer|false|Result limit|
 |datefrom|query|string(date-time)|false|Date from of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)|
 |dateto|query|string(date-time)|false|Date to of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)|
-|terminate|query|array[string]|false|You can terminate previous search ids|
+|terminate|query|array[string]|false|Optional: ID of previous search to terminate to save system resources.|
 
 #### Detailed descriptions
 
@@ -1358,37 +1414,99 @@ Initiates the search; will return status and search Id on success. Status = 2 me
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Success with JSON LiveSearchResponse|None|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid input|None|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
 ApiKeyAuth
 </aside>
 
-## servers__accounts_csv
+## servers__accounts_1
 
 > Code samples
 
 ```shell
 # You can also use wget
-curl -X SERVERS https://2.intelx.io/accounts/csv
+curl -X SERVERS https://2.intelx.io/accounts/1
 
 ```
 
 ```http
-SERVERS https://2.intelx.io/accounts/csv HTTP/1.1
+SERVERS https://2.intelx.io/accounts/1 HTTP/1.1
 Host: 2.intelx.io
 
 ```
 
-`SERVERS /accounts/csv`
+`SERVERS /accounts/1`
 
-<h3 id="servers__accounts_csv-responses">Responses</h3>
+<h3 id="servers__accounts_1-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 
 <aside class="success">
 This operation does not require authentication
+</aside>
+
+## Synchronous Export Leaked Accounts
+
+<a id="opIdaccounts1"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET https://2.intelx.io/accounts/1?selector=info%40intelx.io&timeout=30 \
+  -H 'X-Key: API_KEY'
+
+```
+
+```http
+GET https://2.intelx.io/accounts/1?selector=info%40intelx.io&timeout=30 HTTP/1.1
+Host: 2.intelx.io
+
+```
+
+`GET /accounts/1`
+
+Use this function to query leaked accounts and return them immediately. 
+
+Note: You should use the asynchronous function /accounts/csv as this one might miss results that are not available within the given timeout. 
+Searching for leaked accounts may take minutes, especially when searching for domains that have thousands of results. Internally the API
+must fetch the entire data for each individual result which often results internally in Gigabytes of traffic and potentially causes delays. 
+
+The default timeout is 10 minutes. The client must make sure to allow for such high HTTP timeouts on the client side. The timeout must not be higher than 1 hour, which is the HTTP server write timeout. 
+
+<h3 id="synchronous-export-leaked-accounts-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|selector|query|string|true|Search term|
+|bucket|query|string|false|- Specify the bucket to search|
+|limit|query|integer|false|Result limit|
+|timeout|query|integer|true|- Set a timeout value for the search. If omitted or set to 0, the default is used. |
+|datefrom|query|string(date-time)|false|Date from of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)|
+|dateto|query|string(date-time)|false|Date to of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)|
+|terminate|query|array[string]|false|Optional: ID of previous search to terminate to save system resources.|
+
+#### Detailed descriptions
+
+**bucket**: - Specify the bucket to search
+- See list of buckets https://blog.intelx.io/2022/05/05/list-of-buckets/
+
+**timeout**: - Set a timeout value for the search. If omitted or set to 0, the default is used. 
+
+<h3 id="synchronous-export-leaked-accounts-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|JSON array of CSVRecord|None|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid input|None|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+ApiKeyAuth
 </aside>
 
 # Schemas
