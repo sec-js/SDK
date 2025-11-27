@@ -8,9 +8,9 @@ import json
 import time
 import tabulate
 import argparse
-from importlib.metadata import version
-from intelxapi import intelx
-from intelx_identity import IdentityService
+from importlib.metadata import version, PackageNotFoundError
+from intelx import intelx
+from intelx import IdentityService
 from termcolor import colored
 from pygments import highlight
 from pygments.lexers import JsonLexer
@@ -108,6 +108,13 @@ def idsearch(identity_ix, query, maxresults=100, buckets=[], timeout=5, datefrom
     s = identity_ix.search(term=query, maxresults=maxresults, buckets=buckets, timeout=timeout, datefrom=datefrom, dateto=dateto,  terminate=terminate)
     return s
 
+# workaround when package is not installed
+def safe_version(name: str) -> str:
+    try:
+        return version(name)
+    except PackageNotFoundError:
+        return "-dev"
+
 def main(argv=None):
 
     global search
@@ -136,6 +143,8 @@ def main(argv=None):
     parser.add_argument('-name', help="set the filename to save the item as")
     parser.add_argument('--dataleaks', help="searches for a domain or email address to find data leaks", action="store_true")
     parser.add_argument('--exportaccounts', help="searches for a domain or email address to find leaked accounts.", action="store_true")
+    parser.add_argument('--reversedomain', help="searches for a domain to discover session stealer activity.", action="store_true")    
+    parser.add_argument('--exportfromsearch', help="Export all file from search. Use this for direct data download All file in one time.", action="store_true")    
     parser.add_argument('--nopreview', help="do not show text preview snippets of search results", action="store_true")
     parser.add_argument('--view', help="show full contents of search results", action="store_true")
     parser.add_argument('--phonebook', help="set the search type to a phonebook search")
@@ -143,6 +152,7 @@ def main(argv=None):
     parser.add_argument('--capabilities', help="show your account's capabilities", action="store_true")
     parser.add_argument('--stats', help="show stats of search results", action="store_true")
     parser.add_argument('--raw', help="show raw json", action="store_true")
+    parser.add_argument('--proxy-insecure', help="ignore TLS verification", action="store_false")
     args = parser.parse_args(argv)
 
     # configure IX & the API key
@@ -150,23 +160,23 @@ def main(argv=None):
         if args.identity:
             ix = IdentityService(os.environ['INTELX_KEY'])
         else:
-            ix = intelx(os.environ['INTELX_KEY'])
+            ix = intelx(os.environ['INTELX_KEY'], verify=args.proxy_insecure)
 
     elif args.apikey:
         if args.identity:
             ix_identity = IdentityService(args.apikey)
         else:
-            ix = intelx(args.apikey)
+            ix = intelx(args.apikey, verify=args.proxy_insecure)
 
     else:
         print(banner)
-        print('intelx.py v' + str(version('intelx')))
+        print('intelx.py v' + str(safe_version('intelx')))
         exit('No API key specified. Please use the "-apikey" parameter or set the environment variable "INTELX_KEY".')
 
     # main application flow
     if not args.raw:
         print(banner)
-        print('intelx.py v' + str(version('intelx')))
+        print('intelx.py v' + str(safe_version('intelx')))
 
     if len(sys.argv) < 2:
         print('Usage: intelx.py -search "riseup.net"')
@@ -224,6 +234,44 @@ def main(argv=None):
             tsv_file.close()
             print(colored(f"[{rightnow()}] Exported output to \"{tsv_filename}\".", 'green'))
 
+        if args.reversedomain:
+            print(
+                colored(
+                    f'[{rightnow()}] Starting reverse domain export of "{args.identity}".',
+                    "green",
+                )
+            )
+            account = IdentityService.reverse_domain(
+                ix,
+                args.identity,
+                datefrom=datefrom,
+                dateto=dateto,
+                terminate=terminate,
+            )
+            headers = ["User", "Password", "Password Type", "Source Short"]
+            data = []
+            for block in account:
+                for result in account[block]:
+                    data.append(
+                        [
+                            result["user"],
+                            result["password"],
+                            result["url"],
+                            result["sourceshort"],
+                        ]
+                    )
+            print(
+                tabulate.tabulate(sorted(data), headers=headers, tablefmt="fancy_grid")
+            )
+            exporttsv = tabulate.tabulate(data, tablefmt="tsv")
+            tsv_filename = "intelx-output-" + args.identity + "-export_accounts.tsv"
+            tsv_file = open(tsv_filename, "w")
+            tsv_file.write(exporttsv)
+            tsv_file.close()
+            print(
+                colored(f'[{rightnow()}] Exported output to "{tsv_filename}".', "green")
+            )
+
         if args.dataleaks:
                 print(colored(f"[{rightnow()}] Starting data leaks search of \"{args.identity}\".", 'green'))
                 search = IdentityService.idsearch(
@@ -280,19 +328,33 @@ def main(argv=None):
             media = int(args.media)
 
         if not args.phonebook:
-            search = search(
-                ix,
-                args.search,
-                maxresults=maxresults,
-                buckets=buckets,
-                timeout=timeout,
-                datefrom=datefrom,
-                dateto=dateto,
-                sort=sort,
-                media=media,
-                terminate=terminate
-            )
+            if not args.exportfromsearch:
+                search = search(
+                    ix,
+                    args.search,
+                    maxresults=maxresults,
+                    buckets=buckets,
+                    timeout=timeout,
+                    datefrom=datefrom,
+                    dateto=dateto,
+                    sort=sort,
+                    media=media,
+                    terminate=terminate
+                )
+            elif args.exportfromsearch:
+                result = ix.exportfromsearch(
+                    args.search,
+                    maxresults=maxresults,
+                    buckets=buckets,
+                    timeout=timeout,
+                    datefrom=datefrom,
+                    dateto=dateto,
+                    sort=sort,
+                    media=media,
+                    terminate=terminate
+                )
 
+                return
         elif args.phonebook:
             if(args.phonebook == 'domains'):
                 targetval = 1

@@ -1,0 +1,1208 @@
+openapi: 3.1.0
+info:
+  title: Intelx.io - Search API
+  version: 0.8.0
+  description: |
+    Internal search in "buckets" (e.g. usenet, web.public, whois). 
+    Needs `X-Key` header authorization, or as k=[key] query parameter.
+    The API will return HTTP 401 Unauthorized in case the API key is invalid or not authorized. 
+  termsOfService: https://intelx.io/terms-of-service
+  contact:  
+    name: "Intelligent X"
+    url: "https://intelx.io/"
+    email: "info@intelx.io"
+  license:
+    name: "License and Price"
+    url: "https://intelx.io/product"
+externalDocs:
+  description: "Software Development Kit (SDK) and reference documents"
+  url: "https://github.com/IntelligenceX/SDK"
+servers:
+  - url: 'https://2.intelx.io'
+    description: |
+      IntelligenceX API
+      https://2.intelx.io - paying users
+      https://public.intelx.io  - non-registered users
+      https://free.intelx.io - Free users (who have signed up on intelx.io)
+      see https://blog.intelx.io/2025/03/08/new-search-api-instances/
+  - url: 'https://3.intelx.io'
+    description: |
+      Identity Leaks API    
+        1. Search for a term and return each line where it appears. 
+        2. Export leaked accounts as CSV. 
+paths:
+  /authenticate/info:
+    get:
+      summary: Return a JSON object with the current user's API capabilities
+      operationId: authenticateInfo
+      description: |
+        Return a JSON object with the current user's API capabilities
+      security:
+        - ApiKeyAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                added: "2025-11-04T22:45:01.1220324Z"
+                buckets: ["darknet","dns","documents.public","dumpster","leaks.logs","leaks.private","leaks.public","pastes","usenet","web.gov.ru","web.public","whois"]
+                bucketsh: ["Darknet","DNS","Documents » Public","Dumpster","Leaks » Logs","Leaks » Restricted","Leaks » Public","Pastes","Usenet","Web » Government » Ukraine","Web » Public","Whois"]
+                preview: []
+                previewh: []
+                redacted: []
+                redactedh: []
+                paths:
+                  /authenticate/info: { Path: "/authenticate/info", Credit: 0, CreditMax: 0, CreditReset: 0 }
+                  /file/preview:       { Path: "/file/preview",       Credit: 9971, CreditMax: 10000, CreditReset: 2 }
+                  /file/read:          { Path: "/file/read",          Credit: 998,  CreditMax: 1000,  CreditReset: 2 }
+                  /file/treeview:      { Path: "/file/treeview",      Credit: 500,  CreditMax: 500,   CreditReset: 2 }
+                  /file/view:          { Path: "/file/view",          Credit: 998,  CreditMax: 1000,  CreditReset: 2 }
+                  /intelligent/search: { Path: "/intelligent/search", Credit: 479,  CreditMax: 500,   CreditReset: 2 }
+                  /intelligent/search/export:  { Path: "/intelligent/search/export",  Credit: 100, CreditMax: 100, CreditReset: 2 }
+                  /intelligent/search/result:  { Path: "/intelligent/search/result",  Credit: 0,   CreditMax: 0,   CreditReset: 0 }
+                  /intelligent/search/statistic: { Path: "/intelligent/search/statistic", Credit: 0,  CreditMax: 0,   CreditReset: 0 }
+                  /intelligent/search/terminate: { Path: "/intelligent/search/terminate", Credit: 0,  CreditMax: 0,   CreditReset: 0 }
+                  /item/selector/list/export:  { Path: "/item/selector/list/export",  Credit: 1000, CreditMax: 1000, CreditReset: 2 }
+                  /item/selector/list/human:   { Path: "/item/selector/list/human",   Credit: 1000, CreditMax: 1000, CreditReset: 2 }
+                  /phonebook/search:           { Path: "/phonebook/search",           Credit: 100,  CreditMax: 100,  CreditReset: 2 }
+                  /phonebook/search/export:    { Path: "/phonebook/search/export",    Credit: 100,  CreditMax: 100,  CreditReset: 2 }
+                  /phonebook/search/result:    { Path: "/phonebook/search/result",    Credit: 0,    CreditMax: 0,    CreditReset: 0 }
+                searchesactive: 0
+                maxconcurrentsearches: 10
+        '401':
+          description: Unauthorized  
+  /file/preview:
+    servers:
+      - url: 'https://2.intelx.io'
+    get:
+      summary: File preview
+      operationId: filePreview
+      description: File preview
+      security:
+        - ApiKeyQueryParam: []
+      parameters:
+        - name: sid
+          in: query
+          required: true
+          style: form
+          schema:
+            type: string
+          example: 'fb054e59c7eecab877b317d1f4204abbe4130c727a15ea6e2555e1ebdcd63540b54ecd3242a0a77f70a7e57a4dfc9b70712cfc80f3757beda93e3fc657b41ee7'
+        - name: f
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+          description: Format
+        - $ref: '#/components/parameters/LAsLimitParam'
+        - name: c
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+            enum: [ 1, 2, 3, 4 ]
+          description: Data type
+        - name: m
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+          description: Media
+        - name: b
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: web.public.we
+          description: Bucket
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+  /file/read:
+    servers:
+      - url: 'https://2.intelx.io'
+    get:
+      summary: Read a file's raw contents. Use this for direct data download.
+      operationId: fileRead
+      description: |
+        id option:
+          - Specifies the item's system ID to read.
+    
+        type option:
+          - Specifies content disposition or not.
+          - 0: No content disposition. Returns raw binary file.
+          - 1: Content disposition. May fix line endings to CR LF for text files.
+    
+        bucket option:
+          - Bucket is required.
+    
+        name option:
+          - Specify the name to save the file as (e.g document.pdf).
+      security:
+        - ApiKeyAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/SearchIdParam'
+        - name: type
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: integer
+            enum: [0, 1, 2, 3, 4]
+          description: |
+            Types:  
+                0 = Raw binary
+                1 = Raw binary with content disposition and optional file &name=[name] as parameter
+                2 = Text view, any non-printable characters shall be removed, UTF-8 encoding. Optional max &size=[number] as parameter.
+                3 = Hex view of data. Optional max &size=[number] as parameter.
+                4 = Auto-detect hex view or text view. Optional max &size=[number] as parameter.
+                    The default max size if none is specified is 1 MB.
+        - name: name
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+          description: |
+            Types:  
+                1 = Raw binary with content disposition and optional file &name=[name] as parameter
+        - name: size
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+          description: |
+            Optional max &size=[number] as parameter.
+            The default max size if none is specified is 1 MB.
+        - name: storageid
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          description: Either the storage identifier or system identifier has to be specified.
+        - name: systemid
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          description: Either the storage identifier or system identifier has to be specified.
+      responses:
+        "200":
+          description: OK
+        "404": 
+          description: item was not found
+        "503":
+          description: no storage server was available
+  /file/view:
+    servers:
+      - url: 'https://2.intelx.io'
+    get:
+      summary: Read a file's raw contents. Use this for direct data download.
+      operationId: fileView
+      description: |
+        Show a file's contents based on its storageid (sid), convert to text where necessary.
+      security:
+        - ApiKeyQueryParam: [ ]
+      parameters:
+        - name: f
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+          description: |
+            format option:
+            - 0: textview of content
+            - 1: hex view of content
+            - 2: auto detect hex view or text view
+            - 3: picture view
+            - 4: not supported
+            - 5: html inline view (sanitized)
+            - 6: text view of pdf
+            - 7: text view of html
+            - 8: text view of word file
+        - name: storageid
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          description: Either the storage identifier or system identifier has to be specified.
+        - $ref: '#/components/parameters/OneBucketParam'
+        - name: escape
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+            enum: [0, 1]
+            description: "0 = don't escape, 1 = default behavior"
+          description: |
+            For text the default behavior (unless overwritten by &escape=0) is to escape HTML characters
+            for safe placement of the text in HTML.
+      responses:
+        '200':
+          description: "Data as payload according to the type"
+        '400':
+          description: "Invalid Input"
+        '404':
+          description: item was not found
+  /intelligent/search:
+    servers:
+      - url: 'https://2.intelx.io'
+    post:
+      summary: Initialize an intelligent search and return the ID of the task/search for further processing.
+      operationId: intelligentSearch
+      security:
+        - ApiKeyAuth: [ ]
+      description: |
+        Initialize an intelligent search and return the ID of the task/search for further processing.         
+      parameters:
+        - name: term
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: info@intelx.io
+          description: |
+            The term must be a strong selector. These selector types are currently supported:
+              - Email address
+              - Domain, including wildcards like *.example.com
+              - URL
+              - IPv4 & IPv6
+              - CIDRv4 & CIDRv6
+              - Phone Number
+              - Bitcoin Address
+              - MAC Address
+              - IPFS Hash
+              - UUID
+              - Storage ID
+              - System ID
+              - Simhash
+              - Credit card number
+              - IBAN
+            Soft selectors (generic terms) are not supported!
+        - $ref: '#/components/parameters/MaxresultsParam'
+        - $ref: '#/components/parameters/BucketsParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - name: datefrom
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: 2020-01-01 00:00:00        
+          description: |
+            - Set a starting date to begin the search from.
+            - Example: 2020-01-01 00:00:00
+            - Example: 2020-01-01 12:00:00
+        - name: dateto
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: 2020-02-02 23:59:59
+          
+          description: |
+            - Set an ending date to finish the search from.
+            - Example: 2020-02-02 23:59:59
+            - Example: 2020-02-02 00:00:00
+        - name: sort
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: integer
+          example: 4
+          description: |
+            - Define the way to sort search results.
+            - 0: No sorting.
+            - 1: X-Score ASC. Least relevant items first.
+            - 2: X-Score DESC. Most relevant items first.
+            - 3: Date ASC. Oldest items first.
+            - 4: Date DESC. Newest items first.
+        - $ref: '#/components/parameters/MediaParam'
+        - name: lookuplevel
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+          example: 0
+          description: |
+            lookuplevel
+        - $ref: '#/components/parameters/TerminateParam'
+      responses:
+        '200':
+          description: Success search
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    description: Result status
+                  id:
+                    type: string
+                    example: '61202067-543e-4e6a-8c23-11f9b8f008cf'
+                    pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          links:
+            LiveSearchResult:
+              operationId: liveSearchResult
+              parameters:
+                id: $response.body#/id
+        '400':
+          description: Invalid data
+        '401':
+          description: Invalid api token; not authorized for buckets
+        '402':
+          description: if no credits available
+  /intelligent/search/export:
+     servers:
+      - url: 'https://2.intelx.io'
+     get:
+       operationId: intelligent/search/export
+       summary: Export intelligent search
+       security:
+         - ApiKeyQueryParam: [ ]
+       parameters:
+         - $ref: '#/components/parameters/SearchIdParam'
+         - $ref: '#/components/parameters/LAsLimitParam'
+         - name: f
+           in: query
+           required: false
+           style: form
+           explode: true
+           schema:
+             type: integer
+           description: Format
+       responses:
+         "200":
+           description: OK
+         "404":
+           description: item was not found
+  /intelligent/search/result:
+    servers:
+      - url: 'https://2.intelx.io'
+    get:
+      summary: Fetch intelligent search result
+      operationId: intelligentSearchResult
+      security:
+        - ApiKeyQueryParam: [ ]
+      parameters:
+        - $ref: '#/components/parameters/SearchIdParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/MediaParam'
+        - name: statistics
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+          description: Add statistics
+        - name: previewlines
+          in: query
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: integer
+          description: Preview lines count
+        - $ref: '#/components/parameters/OneBucketParam'
+        - name: dateFrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2024-01-01 00:00:00'
+            pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+          description: Date from of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)
+        - name: dateTo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2024-01-31 23:59:59'
+            pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+          description: Date to of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)
+        - name: reset
+          in: query
+          required: false
+          schema:
+            type: integer
+            enum: [0, 1]
+          description: Reset previous searches
+      responses:
+        '200':
+          description: |
+            Intelligent search result page. The client is expected to poll this
+            endpoint repeatedly and interpret the status code:
+
+              0 = Success with results (continue polling, more results available)
+              1 = No more results available (this response might still have results)
+              2 = Search ID not found
+              3 = No results yet available, keep trying
+              4 = Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  records:
+                    type: array
+                    description: Result records in this page
+                    items:
+                      $ref: '#/components/schemas/SearchResult'
+                  status:
+                    type: integer
+                    enum: [0, 1, 2, 3, 4]
+                    description: |
+                      Status of the search result:
+                        0 = Success with results (continue polling)
+                        1 = No more results available
+                        2 = Search ID not found
+                        3 = No results yet available, keep trying
+                        4 = Error
+                required:
+                  - status
+        '400':
+          description: Invalid input data
+        '401':
+          description: Not authorized. Verify the API key.
+        '404':
+          description: Search ID not found
+        '500':
+          description: Internal API error
+
+  /intelligent/search/statistic:
+    servers:
+      - url: 'https://2.intelx.io'
+    get:
+      summary: Intelligent search statistics
+      operationId: intelligentSearchStatistics
+      security:
+        - ApiKeyQueryParam: [ ]
+      parameters:
+        - $ref: '#/components/parameters/SearchIdParam'
+  /intelligent/search/terminate:
+    servers:
+      - url: 'https://2.intelx.io'
+    get:
+      summary: Terminate previous search
+      operationId: intelligentSearchTerminate
+      security:
+        - ApiKeyQueryParam: [ ]
+      parameters:
+       - $ref: '#/components/parameters/SearchIdParam'
+  /item/selector/list:
+    get:
+      summary: Lists all selectors for an item
+      operationId: itemSelectorList
+      description: lists all selectors for an item from the first selector service that responds.
+      security:
+        - ApiKeyAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/SearchIdParam'
+      responses:
+        '200':
+          description: Success search
+        '400':
+          description: if invalid input id
+        '404':
+          description: item not found
+  /item/selector/list/human:
+     get:
+       operationId: selectorListHumanReadable
+       summary: Lists all selectors for an item with human translation
+       description: Lists all selectors for an item from the first selector service that responds with human translation.
+       security:
+         - ApiKeyQueryParam: [ ]
+       parameters:
+         - $ref: '#/components/parameters/SearchIdParam'
+         - $ref: '#/components/parameters/OneBucketParam'
+       responses:
+         '200':
+           description: with JSON structure SelectorLink
+         '400':
+           description: if invalid input id
+         '404':
+           description: item not found
+  /item/selector/list/export:
+    get:
+      summary: Exports all selectors for an item
+      operationId: itemSelectorListExport
+      description: |
+        Exports all selectors for an item from the first selector service that responds with human translation as CSV.
+        CSV header: Item System ID, Selector, Selector Type, Selector Type Human
+        Filename:   "Selectors [System ID].csv"
+      security:
+       - ApiKeyQueryParam: [ ]        
+      parameters:
+        - $ref: '#/components/parameters/SearchIdParam'
+      responses:
+        '200':
+          description: Success, with data, Content-Disposition set
+        '204':
+          description: Download with content-disposition but item not available. This prevents redirection of the user to error page when providing a direct download link.
+        '400':
+          description: Invalid input. Returned if the encoding is invalid or a required parameter is missing.
+        '401':
+          description: | 
+            Unauthorized Authenticate: Access not authorized. 
+            This may be due missing permission for API call or to selected buckets. 
+        '402':
+          description: "Payment Required Authenticate: No credits available."
+        '404':
+          description: Not Found Item or identifier not found.
+  /phonebook/search:
+    post:
+      operationId: phonebookSearch
+      summary: Phonebook search
+      security:
+        - ApiKeyAuth: [ ]
+      parameters:
+        - name: term
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: info@intelx.io
+        - name: target
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: integer
+            enum: [ 0, 1, 2, 3 ]
+            description: |
+              Search Phonebook:
+              - 0: All
+              - 1: Domains
+              - 2: Email Addresses
+              - 3: URLs
+        - $ref: '#/components/parameters/BucketsParam'
+        - $ref: '#/components/parameters/MaxresultsParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/MediaParam'
+        - $ref: '#/components/parameters/TerminateParam'
+  /phonebook/search/export:
+    get:
+      operationId: phonebookSearchExport
+      summary: Export
+      security:
+        - ApiKeyQueryParam: [ ]
+      parameters:
+        - $ref: '#/components/parameters/SearchIdParam'
+        - $ref: '#/components/parameters/LAsLimitParam'
+  /phonebook/search/result:
+    get:
+      operationId: phonebookSearchResult
+      summary: Fetch phonebook search result
+      security:
+        - ApiKeyQueryParam: [ ]
+      parameters:
+        - $ref: '#/components/parameters/SearchIdParam'
+        - $ref: '#/components/parameters/LAsLimitParam'
+  /api/item/get:
+    get:
+      operationId: apiItemGet
+      summary: Get item meta-data
+      security:
+        - ApiKeyQueryParam: [ ]
+      parameters:
+        - $ref: '#/components/parameters/SearchIdParam'
+  /api/item/get/human:
+    get:
+      operationId: apiItemGetHumanReadable
+      summary: Get item meta-data with human translation
+      security:
+        - ApiKeyQueryParam: [ ]
+      parameters:
+        - $ref: '#/components/parameters/SearchIdParam'
+  /live/search/internal:
+    servers:
+      - url: 'https://3.intelx.io'
+    get:
+      summary: Internal live search
+      operationId: liveSearch
+      description: |
+        Initiates the search; will return status and search Id on success.
+        Limit means max amount of records per bucket to return. Default 10.
+        - Selector: Must be an email address, domain, social security number (US based), or credit card number. 
+        - Limit: In some cases, the API might return more results than specified in limit. If an upper hard limit is required, it must be enforced on the client side. 
+        - Bucket: Optional filter for searching only in the target bucket. See Appendix 1 for list. 
+        - In case a user makes a new search and the previous one shall be discarded; its search ID shall be specified in the “terminate” parameter to save system resources. Searches may consume Gigabytes of data, therefore any searches that are no longer required shall be terminated. Searches can also be manually terminated via the /live/search/terminate function. 
+        - Dates: From/to dates may be used as filter. Note that item’s dates are set to when the original data was published if available, or otherwise when it was indexed. This means that newly indexed items are often backdated. 
+      parameters:
+        - name: selector
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: info@intelx.io
+          description: Selector to search for
+        - $ref: '#/components/parameters/OneBucketParam'
+        - name: skipinvalid
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Specify to skip invalid entries (recommended). Default false. 
+        - $ref: '#/components/parameters/LimitParam'
+        - name: analyze
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Default false.
+        - name: datefrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2024-01-01 00:00:00'
+            pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+          description: Date from of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)
+        - name: dateto
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2024-01-31 23:59:59'
+            pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+          description: Date to of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)
+        - $ref: '#/components/parameters/TerminateParam'
+      responses:
+        '200':
+          description: Success search
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    description: Result status
+                  id:
+                    type: string
+                    example: '61202067-543e-4e6a-8c23-11f9b8f008cf'
+                    pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                required:
+                  - status
+                  - id
+          links:
+            LiveSearchResult:
+              operationId: liveSearchResult
+              parameters:
+                id: $response.body#/id
+        '400':
+          description: Invalid input
+        '401':
+          description: Invalid api token
+      security:
+        - ApiKeyAuth: []
+  /live/search/terminate:
+    servers:
+      - url: 'https://3.intelx.io'
+    get:
+      summary: Terminating search
+      operationId: liveSearchTerminate
+      description: |
+        To terminate an active search or export, use this function. Terminating a search that is no longer needed saves system resources. 
+        Since searches may read and process Gigabytes of data, it is highly appreciated if users terminate searches that are no longer needed. 
+
+        Terminating a search that is already terminated has no effect. 
+      parameters:
+        - $ref: '#/components/parameters/SearchIdParam'
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '204':
+          description: Success with no content
+        '400':
+          description: Invalid input
+
+  /live/search/result:
+    servers:
+      - url: 'https://3.intelx.io'
+    get:
+      security:
+        - ApiKeyAuth: []
+      summary: Fetch results from internal live search
+      operationId: liveSearchResult
+      description: |
+        Initiates the search; will return status and search Id on success. 
+        Status = 2 means end of search result. Good manners is to wait 1s before each new result fetch.
+        
+        Depending on the format parameter the response uses the text field, the records field, or both. 
+        Text is HTML encoded and intended for direct visualization to the end-user. Use format=1 for machine processing.  
+        
+        The response uses the following JSON structure. The status indicates whether results are available and whether the client 
+        shall continue to fetch for results. 
+        
+        Status 
+          - 0 means there are results in the response, 
+          - 1 means there is currently no result in the response, but the client should continue to fetch for results. 
+          - 2 (Terminated) and 
+          - 3 (Search ID Not Found) tell the client to stop querying for results. Note that with status 2 there might be the last results in the response. 
+      parameters:
+        - $ref: '#/components/parameters/SearchIdParam'
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: integer
+            enum: [0, 1, 2]
+            default: 0
+          description: |
+            Return only specified fields: 0 = Text only, default 1 = Records only 2 = Return both fields 
+
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Success search
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    enum: [ 0, 1, 2 ]
+                    description: Result status
+                      0,1 - there is another result/s to fetch
+                      2 - no more results
+                  results:
+                    type: string
+                    description: Text response
+        '400':
+          description: Invalid data
+        '401':
+          description: Invalid api token
+  /accounts/csv:
+    servers:
+      - url: 'https://3.intelx.io'
+    get:
+      security:
+        - ApiKeyAuth: []
+      summary: Fetch results from internal live search
+      operationId: accountsCsv
+      description: |
+        This is the API used by the “Export Leaked Accounts” tab of the Identity Portal. It only supports domains and email addresses as input.         
+        
+        The response is the same as for /live/search/internal, returning a status and the search job ID. In case a user makes a new export and the previous one shall be discarded; 
+        its search ID shall be specified in the “terminate” parameter to save system resources. Searches may consume Gigabytes of data, therefore any searches that are no longer 
+        required shall be terminated. Searches can also be manually terminated via the /live/search/terminate function. 
+      parameters:
+        - name: selector
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: info@intelx.io
+          description: Search term
+        - $ref: '#/components/parameters/OneBucketParam'
+        - $ref: '#/components/parameters/LimitParam'      
+        - name: datefrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2024-01-01 00:00:00'
+            pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+          description: Date from of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)
+        - name: dateto
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2024-01-31 23:59:59'
+            pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+          description: Date to of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)
+        - $ref: '#/components/parameters/TerminateParam'    
+      responses:
+        '200':
+          description: Success with JSON LiveSearchResponse 
+        '400':
+          description: Invalid input
+  /accounts/1:
+    servers:
+      - url: 'https://3.intelx.io'
+    get:
+      security:
+        - ApiKeyAuth: [ ]
+      summary: Synchronous Export Leaked Accounts 
+      operationId: accounts1
+      description: |
+        Use this function to query leaked accounts and return them immediately. 
+        
+        Note: You should use the asynchronous function /accounts/csv as this one might miss results that are not available within the given timeout. 
+        Searching for leaked accounts may take minutes, especially when searching for domains that have thousands of results. Internally the API
+        must fetch the entire data for each individual result which often results internally in Gigabytes of traffic and potentially causes delays. 
+
+        The default timeout is 10 minutes. The client must make sure to allow for such high HTTP timeouts on the client side. The timeout must not be higher than 1 hour, which is the HTTP server write timeout. 
+      parameters:
+        - name: selector
+          in: query
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+          example: info@intelx.io
+          description: Search term
+        - $ref: '#/components/parameters/OneBucketParam'
+        - $ref: '#/components/parameters/LimitParam'      
+        - $ref: '#/components/parameters/TimeoutParam'
+        - name: datefrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2024-01-01 00:00:00'
+            pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+          description: Date from of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)
+        - name: dateto
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: '2024-01-31 23:59:59'
+            pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+          description: Date to of the result in `YYYY-mm-dd HH:ii:ss` format. (Not RFC3339)
+        - $ref: '#/components/parameters/TerminateParam'
+      responses:
+        '200':
+          description: JSON array of CSVRecord 
+        '400':
+          description: Invalid input
+components:
+  securitySchemes:
+    ApiKeyQueryParam:
+      type: apiKey
+      in: query
+      name: k
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Key
+  parameters:
+    TimeoutParam:
+      name: timeout
+      in: query
+      required: true
+      style: form
+      explode: true
+      schema:
+        type: integer
+      example: 30
+      description: |
+        - Set a timeout value for the search. If omitted or set to 0, the default is used. 
+    MediaParam:
+      name: media
+      in: query
+      required: true
+      style: form
+      explode: true
+      schema:
+        type: integer
+      example: 0
+      description: |
+        - Define the type of media to search for.
+        - 0: Not set. (All media types)
+        - 1: Paste document
+        - 2: Paste User
+        - 3: Forum
+        - 4: Forum Board
+        - 5: Forum Thread
+        - 6: Forum Post
+        - 7: Forum User
+        - 8: Screenshot of a Website
+        - 9: HTML copy of a website.
+        - 10: Invalid, do not use.
+        - 11: Invalid, do not use.
+        - 12: Invalid, do not use.
+        - 13: Tweet
+        - 14: URL, high-level item having HTML copies as linked sub-items
+        - 15: PDF document
+        - 16: Word document
+        - 17: Excel document
+        - 18: Powerpoint document
+        - 19: Picture
+        - 20: Audio file
+        - 21: Video file
+        - 22: Container files including ZIP, RAR, TAR and others
+        - 23: HTML file
+        - 24: Text file
+    TerminateParam:
+      name: terminate
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+          format: uuid
+      style: form
+      description: "Optional: ID of previous search to terminate to save system resources."
+    MaxresultsParam:
+      name: maxresults
+      in: query
+      required: true
+      style: form
+      explode: true
+      schema:
+        type: integer
+      example: 100
+      description: |
+        - Tells how many results to query maximum per bucket.
+    BucketsParam:
+      name: buckets
+      in: query
+      required: false
+      style: form
+      explode: true
+      schema:
+        type: string
+      example: pastes,darknet.i2p
+      description: |
+        - Specify the buckets to search
+        - Example: buckets=[]
+        - Example: buckets=['pastes', 'darknet.i2p']
+        - See list of buckets https://blog.intelx.io/2022/05/05/list-of-buckets/
+    OneBucketParam:
+      name: bucket
+      in: query
+      required: false
+      style: form
+      explode: true
+      schema:
+        type: string
+      example: darknet.i2p
+      description: |
+        - Specify the bucket to search
+        - See list of buckets https://blog.intelx.io/2022/05/05/list-of-buckets/
+    LimitParam:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 100
+        minimum: 1
+        maximum: 1000
+      description: Result limit
+    LAsLimitParam:
+      name: l
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 100
+        minimum: 1
+        maximum: 1000
+      description: Result limit
+    SearchIdParam:
+      name: id
+      in: query
+      required: true
+      style: form
+      explode: true
+      schema:
+        type: string
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      example: '61202067-543e-4e6a-8c23-11f9b8f008cf'
+      description: 'Search id (e.g. "61202067-543e-4e6a-8c23-11f9b8f008cf")'
+  schemas:
+    Tag:
+      type: object
+      properties:
+        class:
+          type: integer
+          format: int32
+          description: Tag class
+        value:
+          type: string
+          description: Tag value
+      required: [class, value]
+
+    Relationship:
+      type: object
+      properties:
+        target:
+          type: string
+          format: uuid
+          description: Target item system ID
+        relation:
+          type: integer
+          description: Relation type (see server implementation)
+      required: [target, relation]
+
+    Item:
+      type: object
+      description: Generic item meta-data, as used for search results.
+      properties:
+        systemid:
+          type: string
+          format: uuid
+          description: System identifier uniquely identifying the item
+        storageid:
+          type: string
+          description: Storage identifier, empty if not stored/available
+        instore:
+          type: boolean
+          description: Whether the data of the item is in store and the storageid is valid
+        size:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Size in bytes of the item data
+        accesslevel:
+          type: integer
+          description: Native access level of the item
+        type:
+          type: integer
+          description: Low-level content type
+        media:
+          type: integer
+          description: High-level media type
+        added:
+          type: string
+          format: date-time
+          description: When the item was added to the system
+        date:
+          type: string
+          format: date-time
+          description: When the item was discovered or created
+        name:
+          type: string
+          description: Name or title
+        description:
+          type: string
+          description: Full description, text only
+        xscore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: X-Score, ranking its relevancy, 0–100
+        simhash:
+          type: integer
+          format: int64
+          description: Simhash of the item data
+        bucket:
+          type: string
+          description: Bucket identifier
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          description: Meta-data tags helping in classification of the item data
+        relations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Relationship'
+          description: Related items
+      required:
+        - systemid
+
+    PanelSearchResultTag:
+      type: object
+      properties:
+        class:
+          type: integer
+          format: int32
+          description: Tag class
+        classh:
+          type: string
+          description: Human friendly tag class
+        value:
+          type: string
+          description: Tag value
+        valueh:
+          type: string
+          description: Human friendly tag value
+
+    SearchResult:
+      allOf:
+        - $ref: '#/components/schemas/Item'
+        - type: object
+          description: Search result record, extends Item with human-readable fields.
+          properties:
+            accesslevelh:
+              type: string
+              description: Human friendly access level info
+            mediah:
+              type: string
+              description: Human friendly media type info
+            simhashh:
+              type: string
+              description: Human friendly simhash
+            typeh:
+              type: string
+              description: Human friendly content type info
+            tagsh:
+              type: array
+              items:
+                $ref: '#/components/schemas/PanelSearchResultTag'
+              description: Human friendly tags
+            randomid:
+              type: string
+              format: uuid
+              description: Random ID
+            bucketh:
+              type: string
+              description: Human friendly bucket name
+            group:
+              type: string
+              description: File group
+            indexfile:
+              type: string
+              description: Index file ID
