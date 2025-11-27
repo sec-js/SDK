@@ -1,6 +1,11 @@
-from intelxapi import intelx
+from intelx import intelx
+from dotenv import load_dotenv
+import os
 
-intelx = intelx()
+load_dotenv()
+INTELX_KEY = os.getenv("INTELX_KEY")
+
+intelx = intelx(INTELX_KEY)
 result = intelx.search('riseup.net')
 
 # grab file contents of first search result

@@ -1,21 +1,14 @@
 import time
 
-import requests
-from intelxapi import intelx
-
+from .intelxapi import intelx
 
 class IdentityService(intelx):
 
-    def __init__(self, api_key, user_agent='IX-Python/0.7'):
-        super().__init__(api_key, user_agent)
-        self.API_ROOT = 'https://3.intelx.io'
-        self.HEADERS = {'X-Key': self.API_KEY, 'User-Agent': self.USER_AGENT}
-        self.PAUSE_BETWEEN_REQUESTS = 1
+    API_ROOT = 'https://3.intelx.io'
 
     def get_search_results(self, id, format=1, maxresults=100):
         params = {'id': id, 'format': format, 'limit': maxresults}
-        r = requests.get(self.API_ROOT + '/live/search/result',
-                         params, headers=self.HEADERS, timeout=30)
+        r = self._get('/live/search/result', params)
         if r.status_code == 200:
             return r.json()
         else:
@@ -35,8 +28,7 @@ class IdentityService(intelx):
         }
         done = False
         results = []
-        r = requests.get(self.API_ROOT + '/live/search/internal',
-                         headers=self.HEADERS, params=p, timeout=30)
+        r = self._get('/live/search/internal', params=p)
         if r.status_code == 200:
             search_id = r.json()['id']
         else:
@@ -45,7 +37,7 @@ class IdentityService(intelx):
             print(
                 f"[!] intelx.IDENTITY_SEARCH() Received {self.get_error(search_id)}")
         while not done:
-            time.sleep(self.PAUSE_BETWEEN_REQUESTS)
+            time.sleep(self.API_RATE_LIMIT)
             r = self.get_search_results(search_id, maxresults=maxresults)
             if (r["status"] == 0 and r["records"]):
                 for a in r['records']:
@@ -66,8 +58,7 @@ class IdentityService(intelx):
         p = {
             "id": id,
         }
-        r = requests.get(self.API_ROOT + '/live/search/internal',
-                         headers=self.HEADERS, params=p, timeout=30)
+        r = self._get('/live/search/internal', params=p)
         if r.status_code == 204:
             return (r.status_code, r.text)
         else:
@@ -84,21 +75,60 @@ class IdentityService(intelx):
         }
         done = False
         results = []
-        r = requests.get(self.API_ROOT + '/accounts/csv',
-                         headers=self.HEADERS, params=p, timeout=30)
+        r = self._get('/accounts/csv', params=p)
         if r.status_code == 200:
             search_id = r.json()['id']
             if (len(str(search_id)) <= 3):
                 print(
                     f"[!] intelx.IDENTITY_EXPORT() Received {self.get_error(search_id)}")
             while not done:
-                time.sleep(self.PAUSE_BETWEEN_REQUESTS)
+                time.sleep(self.API_RATE_LIMIT)
                 r = self.get_search_results(search_id, maxresults=maxresults)
                 if (r["status"] == 0 and r["records"]):
                     for a in r['records']:
                         results.append(a)
                     maxresults -= len(r['records'])
                 if (r['status'] == 2 or maxresults <= 0):
+                    if(r['records']):
+                        for a in r['records']:
+                            results.append(a)
+                        maxresults -= len(r['records'])
+                    if (maxresults <= 0):
+                        self.terminate_search(search_id)
+                    done = True
+            return {'records': results}
+        else:
+            return (r.status_code, r.text)
+
+    def reverse_domain(self, term, maxresults=10, datefrom=None, dateto=None, terminate=None):
+        p = {
+            "selector": term,
+            "limit": maxresults,
+            "datefrom": datefrom,  # "YYYY-MM-DD HH:MM:SS",
+            "dateto": dateto,  # "YYYY-MM-DD HH:MM:SS"
+            "terminate": terminate,
+        }
+        done = False
+        results = []
+        r = self._get('/reverse/domain', params=p)
+        if r.status_code == 200:
+            search_id = r.json()['id']
+            if len(str(search_id)) <= 3:
+                print(
+                    f"[!] intelx.IDENTITY_DOMAIN() Received {self.get_error(search_id)}"
+                )
+            while not done:
+                time.sleep(self.API_RATE_LIMIT)
+                r = self.get_search_results(search_id, maxresults=maxresults)
+                if (r["status"] == 0 and r["records"]):
+                    for a in r['records']:
+                        results.append(a)
+                    maxresults -= len(r['records'])
+                if (r['status'] == 2 or maxresults <= 0):
+                    if(r['records']):
+                        for a in r['records']:
+                            results.append(a)
+                        maxresults -= len(r['records'])
                     if (maxresults <= 0):
                         self.terminate_search(search_id)
                     done = True
