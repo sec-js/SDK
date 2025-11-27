@@ -483,31 +483,33 @@ class intelx:
         else:
             return r.status_code
 
-    def INTEL_EXPORT(self, id, start=1, end=1000, filename="sample"):
+    def INTEL_EXPORT(self, id, f=1, l=1000):
         """
         Export all file from search. Use this for direct data download All file in one time.
-        id search:
-        - Specifies search ID.
-        start option:
-        - start index of search
-        - default: 1
-        end option:
-        - end index of search
-        - default: 1000
-        filename option:
-        - Specify the name to save the file as (default: sample, extention alway is zip).
+        id - Specifies search ID.
+        f -	Export format (0 csv, 1 zip).
+        l -	Result limit. Defaults to 1000. (opitional)
         """
         time.sleep(self.API_RATE_LIMIT)
         p = {
             "id": id,
-            "f": start,
-            "l": end,
+            "f": f,
+            "l": l,
         }
-        r = self._get("/intelligent/search/result", params=p, stream=True)
+        r = self._get("/intelligent/search/export", params=p) 
         if r.status_code == 200:
-            with open(f"{filename}.json", "wb") as f:
-                f.write(r.content)
-                f.close()
+            cd = r.headers.get("Content-Disposition", "")
+            match = re.search(r'filename="?([^"]+)"?', cd)
+            if match:
+                filename = match.group(1)
+
+            if len(str(filename)) == 0:
+                return False
+
+            with open(filename, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:  # filter out keep-alive chunks
+                        f.write(chunk)
             return True
         else:
             return r.status_code
@@ -520,15 +522,13 @@ class intelx:
         results = self.INTEL_SEARCH_RESULT(id, limit)
         return results
 
-    def exportfromsearch(self, term, maxresults=100, buckets=[], timeout=5, datefrom="", dateto="", sort=4, media=0, terminate=[], filename=None):
+    def exportfromsearch(self, term, export_format=0, maxresults=100, buckets=[], timeout=5, datefrom="", dateto="", sort=4, media=0, terminate=[], filename=None):
         search_id = self.INTEL_SEARCH(term, maxresults, buckets, timeout, datefrom, dateto, sort, media, terminate)
+
         if(len(str(search_id)) <= 3):
             print(f"[!] intelx.INTEL_SEARCH() Received {self.get_error(search_id)}")
             sys.exit()
-        if filename is None:
-            timestamp = time.strftime("%y%m%d%H%M%S", time.localtime())
-            filename = f"intelx_export_{timestamp}"
-        r = self.INTEL_EXPORT(search_id, 1, maxresults, filename)
+        r = self.INTEL_EXPORT(search_id, export_format, maxresults)
         return r
 
     def query_pb_results(self, id, limit):
