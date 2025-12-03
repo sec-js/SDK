@@ -232,11 +232,8 @@ class IntelXClient {
                 ? this.get_error(searchId)
                 : `Error code: ${searchId}`;
 
-            console.error(`[!] intelx.INTEL_SEARCH() Received ${errMsg}`);
-            // In browser-compatible code it's better to throw than exit the process
+            console.error(`[!] intelx.intel_search() Received ${errMsg}`);
             throw new Error(errMsg);
-            // If you really want Node-only behavior:
-            // if (typeof process !== 'undefined' && process.exit) process.exit(1);
         }
 
         // Poll until done
@@ -255,7 +252,7 @@ class IntelXClient {
 
             // status 1 or 2 or no more results allowed
             if (r.status === 1 || r.status === 2 || remaining <= 0) {
-                if (remaining <= 0 && this.intel_terminate_search) {
+                if (remaining <= 0) {
                     await this.intel_terminate_search(searchId);
                 }
                 done = true;

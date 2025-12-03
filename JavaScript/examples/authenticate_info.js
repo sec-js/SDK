@@ -1,7 +1,6 @@
 const IntelXClient = require('../lib/IntelXClient');
 
 (async () => {
-    // Read API key from environment (both variants for convenience)
     const apiKey = "00000000-0000-0000-0000-000000000000"
 
     const client = new IntelXClient(apiKey)
