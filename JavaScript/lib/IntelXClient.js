@@ -38,7 +38,6 @@ class IntelXClient {
 
         url = this._buildUrl(url, params || {})
 
-
         const controller = new AbortController();
         const id = setTimeout(() => controller.abort(), timeout);
 
@@ -137,7 +136,7 @@ class IntelXClient {
      *
      * @returns {Promise<number|string>} - status (1) or id or HTTP status code.
      */
-    async intel_search(
+    async intelSearch(
         term,
         {
             maxresults = 100,
@@ -216,7 +215,7 @@ class IntelXClient {
         let remaining = maxresults;
 
         // Start intelligent search
-        const searchId = await this.intel_search(term, {
+        const searchId = await this.intelSearch(term, {
             maxresults: remaining,
             buckets,
             timeout,
@@ -227,21 +226,14 @@ class IntelXClient {
             terminate,
         });
 
-        if (String(searchId).length <= 3) {
-            const errMsg = this.get_error
-                ? this.get_error(searchId)
-                : `Error code: ${searchId}`;
-
-            console.error(`[!] intelx.intel_search() Received ${errMsg}`);
-            throw new Error(errMsg);
-        }
+        this.handleSearchId(searchId)
 
         // Poll until done
         while (!done) {
             await new Promise(resolve => setTimeout(resolve, this.apiRateLimit));
 
             // Fetch next chunk of results
-            const r = await this.intel_search_result(searchId, remaining);
+            const r = await this.searchResult(searchId, remaining);
 
             const records = r.records || [];
             for (const rec of records) {
@@ -253,7 +245,7 @@ class IntelXClient {
             // status 1 or 2 or no more results allowed
             if (r.status === 1 || r.status === 2 || remaining <= 0) {
                 if (remaining <= 0) {
-                    await this.intel_terminate_search(searchId);
+                    await this.terminateSearch(searchId);
                 }
                 done = true;
             }
@@ -263,12 +255,36 @@ class IntelXClient {
     }
 
     /**
+     * @throws Error
+     */
+    handleSearchId(searchId) {
+        if (typeof searchId === 'number') {
+            const message = `Search failed with status ${searchId}`
+            switch (searchId) {
+                case 400:
+                    throw new Error(`${message} (Bad Request)`);
+                case 401:
+                    throw new Error(`${message} (Unauthorized – invalid or missing apiKey)`);
+                case 403:
+                    throw new Error(`${message} (Forbidden – insufficient permissions)`);
+                case 404:
+                    throw new Error(`${message} (Item not found)`);
+                case 500:
+                    throw new Error(`${message} (Internal server error)`);
+                default:
+                    throw new Error(message);
+            }
+        }
+    }
+
+
+    /**
      * Terminate a previously initialized search based on its UUID.
      *
      * @param {string} uuid - Search ID (UUID).
      * @returns {Promise<boolean|number>} - true on success, or HTTP status code on error.
      */
-    async intel_terminate_search(uuid) {
+    async terminateSearch(uuid) {
         await new Promise(resolve => setTimeout(resolve, this.apiRateLimit));
 
         const params = { id: uuid };
@@ -291,7 +307,7 @@ class IntelXClient {
      * @param {number} limit - Max number of results to return.
      * @returns {Promise<Object|number>} - Parsed JSON on success, or HTTP status code on error.
      */
-    async intel_search_result(id, limit) {
+    async searchResult(id, limit) {
         if (this.apiRateLimit) {
             await new Promise(resolve => setTimeout(resolve, this.apiRateLimit));
         }
@@ -322,61 +338,6 @@ class IntelXClient {
     }
 
     /**
-     * Calls POST /intelligent/search.
-     *
-     * Example body (minimal):
-     * {
-     *   term: "riseup.net",
-     *   maxresults: 100,
-     *   timeout: 30,
-     *   sort: 2,
-     *   media: 0
-     * }
-     *
-     * @param {Object} body - Request body for the intelligent search.
-     * @returns {Promise}
-     */
-    async intelligentSearch(body) {
-        return this._post('/intelligent/search', {
-            body
-        });
-    }
-
-    /**
-     * Calls GET /intelligent/search/result and returns HttpResult.
-     *
-     * @param {Object} params
-     * @param {string} params.id - Search ID returned by /intelligent/search.
-     * @param {number} [params.limit] - Optional result limit.
-     * @param {number} [params.media] - Optional media type filter.
-     * @param {number} [params.statistics] - Add statistics.
-     * @param {number} [params.previewlines] - Preview lines count.
-     * @param {string} [params.onebucket] - Restrict to a specific bucket.
-     * @param {string} [params.dateFrom] - Date from (YYYY-mm-dd HH:ii:ss).
-     * @param {string} [params.dateTo] - Date to (YYYY-mm-dd HH:ii:ss).
-     * @param {number} [params.reset] - Reset previous searches (0/1).
-     * @returns {Promise}
-     */
-    async intelligentSearchResult(params) {
-        return this._get('/intelligent/search/result', {
-            query: params
-        });
-    }
-
-    /**
-     * Calls GET /intelligent/search/terminate to terminate a search job.
-     *
-     * @param {Object} params
-     * @param {string} params.id - Search ID to terminate.
-     * @returns {Promise}
-     */
-    async intelligentSearchTerminate(params) {
-        return this._get('/intelligent/search/terminate', {
-            query: params
-        });
-    }
-
-    /**
      * Calls GET /file/preview.
      * Returns a text preview (up to ~1000 characters).
      *
@@ -390,9 +351,8 @@ class IntelXClient {
      * @returns {Promise}
      */
     async filePreview(params) {
-        return this._get('/file/preview', {
-            query: params
-        });
+        params['k'] = this.apiKey
+        return this._get('/file/preview', {params: params});
     }
 
     /**
