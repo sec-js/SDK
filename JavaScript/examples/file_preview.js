@@ -6,8 +6,8 @@ const IntelXClient = require('../lib/IntelXClient');
     const client = new IntelXClient(apiKey)
 
     try {
-        search = await client.search("riseup.net", { maxresults: 5 })
-        first = search["records"][0]
+        const search = await client.search("riseup.net", { maxresults: 5 })
+        const first = search["records"][0]
 
         const params = {
             c: 1,                     // content type
