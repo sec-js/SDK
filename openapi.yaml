@@ -405,6 +405,14 @@ paths:
      get:
        operationId: intelligent/search/export
        summary: Export intelligent search
+       description: |
+        Exports search results as either a CSV summary or a ZIP archive. This endpoint requires the 
+        Search ID returned by /intelligent/search.
+
+        The CSV summary contains the following columns: Name, Date, Bucket, Media, Content Type, Size, System ID
+
+        See: https://help.intelx.io/api/search/#intelligentsearchexport
+
        security:
          - ApiKeyQueryParam: [ ]
        parameters:
@@ -412,17 +420,24 @@ paths:
          - $ref: '#/components/parameters/LAsLimitParam'
          - name: f
            in: query
-           required: false
+           required: true
            style: form
            explode: true
            schema:
              type: integer
-           description: Format
+           description: |
+            Format:
+              - 0:	CSV summary file.
+              - 1:	ZIP archive containing the CSV summary (Info.csv) and binary files named [system ID].bin.
+              https://help.intelx.io/api/limits/#export-zip-file
        responses:
          "200":
-           description: OK
-         "404":
-           description: item was not found
+           description: |
+            Successful export. Response contains the file. The Content-Disposition header includes a suggested filename such as Search [Date].csv.
+         "204":
+          description: Search ID not found. No body returned.
+         "400":
+           description: Invalid input. Typically due to missing or malformed parameters.
   /intelligent/search/result:
     servers:
       - url: 'https://2.intelx.io'

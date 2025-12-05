@@ -535,17 +535,24 @@ ApiKeyAuth
 
 ```shell
 # You can also use wget
-curl -X GET https://2.intelx.io/intelligent/search/export?id=61202067-543e-4e6a-8c23-11f9b8f008cf
+curl -X GET https://2.intelx.io/intelligent/search/export?id=61202067-543e-4e6a-8c23-11f9b8f008cf&f=0
 
 ```
 
 ```http
-GET https://2.intelx.io/intelligent/search/export?id=61202067-543e-4e6a-8c23-11f9b8f008cf HTTP/1.1
+GET https://2.intelx.io/intelligent/search/export?id=61202067-543e-4e6a-8c23-11f9b8f008cf&f=0 HTTP/1.1
 Host: 2.intelx.io
 
 ```
 
 `GET /intelligent/search/export`
+
+Exports search results as either a CSV summary or a ZIP archive. This endpoint requires the 
+Search ID returned by /intelligent/search.
+
+The CSV summary contains the following columns: Name, Date, Bucket, Media, Content Type, Size, System ID
+
+See: https://help.intelx.io/api/search/#intelligentsearchexport
 
 <h3 id="export-intelligent-search-parameters">Parameters</h3>
 
@@ -553,14 +560,22 @@ Host: 2.intelx.io
 |---|---|---|---|---|
 |id|query|string|true|Search id (e.g. "61202067-543e-4e6a-8c23-11f9b8f008cf")|
 |l|query|integer|false|Result limit|
-|f|query|integer|false|Format|
+|f|query|integer|true|Format:|
+
+#### Detailed descriptions
+
+**f**: Format:
+  - 0:	CSV summary file.
+  - 1:	ZIP archive containing the CSV summary (Info.csv) and binary files named [system ID].bin.
+  https://help.intelx.io/api/limits/#export-zip-file
 
 <h3 id="export-intelligent-search-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|OK|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|item was not found|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Successful export. Response contains the file. The Content-Disposition header includes a suggested filename such as Search [Date].csv.|None|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|Search ID not found. No body returned.|None|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid input. Typically due to missing or malformed parameters.|None|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:

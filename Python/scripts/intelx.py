@@ -143,8 +143,9 @@ def main(argv=None):
     parser.add_argument('-name', help="set the filename to save the item as")
     parser.add_argument('--dataleaks', help="searches for a domain or email address to find data leaks", action="store_true")
     parser.add_argument('--exportaccounts', help="searches for a domain or email address to find leaked accounts.", action="store_true")
-    parser.add_argument('--reversedomain', help="searches for a domain to discover session stealer activity.", action="store_true")    
-    parser.add_argument('--exportfromsearch', help="Export all file from search. Use this for direct data download All file in one time.", action="store_true")    
+    parser.add_argument('--reversedomain', help="searches for a domain to discover session stealer activity.", action="store_true")
+    parser.add_argument('--exportfromsearch', help="Export all file from search. Use this for direct data download All file in one time.", action="store_true")
+    parser.add_argument('--exportfileformat', help="When --exportfromsearch you can specify --exportfileformat=0: csv, 1: zip.")
     parser.add_argument('--nopreview', help="do not show text preview snippets of search results", action="store_true")
     parser.add_argument('--view', help="show full contents of search results", action="store_true")
     parser.add_argument('--phonebook', help="set the search type to a phonebook search")
@@ -328,7 +329,21 @@ def main(argv=None):
             media = int(args.media)
 
         if not args.phonebook:
-            if not args.exportfromsearch:
+            if args.exportfromsearch:
+                result = ix.exportfromsearch(
+                    args.search,
+                    args.exportfileformat,
+                    maxresults=maxresults,
+                    buckets=buckets,
+                    timeout=timeout,
+                    datefrom=datefrom,
+                    dateto=dateto,
+                    sort=sort,
+                    media=media,
+                    terminate=terminate
+                )
+                return
+            else:
                 search = search(
                     ix,
                     args.search,
@@ -341,20 +356,7 @@ def main(argv=None):
                     media=media,
                     terminate=terminate
                 )
-            elif args.exportfromsearch:
-                result = ix.exportfromsearch(
-                    args.search,
-                    maxresults=maxresults,
-                    buckets=buckets,
-                    timeout=timeout,
-                    datefrom=datefrom,
-                    dateto=dateto,
-                    sort=sort,
-                    media=media,
-                    terminate=terminate
-                )
 
-                return
         elif args.phonebook:
             if(args.phonebook == 'domains'):
                 targetval = 1
