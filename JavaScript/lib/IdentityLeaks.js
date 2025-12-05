@@ -1,0 +1,110 @@
+const IntelXClient = require('./IntelXClient');
+
+/**
+ * @param {string} apiKey - API key value for X-Key header or k= query param
+ * @param {Object} options
+ * @param {string} [options.baseUrl] - Optional base URL, defaults to leaks API (3.intelx.io)
+ */
+class IdentityLeaks extends IntelXClient {
+    constructor(apiKey, baseUrl = 'https://3.intelx.io', userAgent = 'IX-JavaScript/0.1') {
+        super(apiKey,
+            baseUrl,
+            userAgent
+        );
+    }
+
+
+    async searchInternal(selector, { limit = 100, bucket, skipinvalid = true, analyze = false, datefrom = null, dateto = null, terminate = null}) {
+        const searchId = await this.searchInternalId(selector,
+            {
+            limit,
+            bucket,
+            skipinvalid,
+            analyze,
+            datefrom,
+            dateto,
+            terminate
+        })
+
+        this.handleSearchId(searchId)
+
+        let data = ''
+        while(true) {
+            const r = await this.searchInternalResult(searchId)
+            data += r.text
+            if (r.status >= 2) {
+                break
+            }
+        }
+
+        this.terminateLiveSearch(searchId)
+
+        return data
+    }
+
+    async searchInternalId(selector, { limit = 100, bucket, skipinvalid = true, analyze = false, datefrom = null, dateto = null, terminate = null}) {
+        const params = {
+            selector: selector,
+            limit: limit,
+            bucket: bucket,
+            skipinvalid: skipinvalid,
+            analyze: analyze,
+            k: this.apiKey,
+        }
+        if (datefrom) {
+            params['datefrom'] = datefrom
+        }
+        if (dateto) {
+            params['dateto'] = dateto
+        }
+        if (terminate) {
+            params['terminate'] = terminate
+        }
+
+        const r = await this._get('/live/search/internal', {params: params})
+
+        if (r.status === 200) {
+            const data = await r.json();
+            if (data.status === 1 || data.status === 2) {
+                return data.status;
+            }
+            return data.id;
+        } else {
+            return r.status;
+        }
+    }
+
+    async searchInternalResult(id)
+    {
+        if (this.apiRateLimit) {
+            await new Promise(resolve => setTimeout(resolve, this.apiRateLimit));
+        }
+        const params = {id: id}
+        const r = await this._get('/live/search/result', {params: params})
+        return await r.json()
+    }
+
+    /**
+     * Terminate a previously initialized search based on its UUID.
+     *
+     * @param {string} uuid - Search ID (UUID).
+     * @returns {Promise<boolean|number>} - true on success, or HTTP status code on error.
+     */
+    async terminateLiveSearch(uuid) {
+        await new Promise(resolve => setTimeout(resolve, this.apiRateLimit));
+
+        const params = { id: uuid };
+
+        const r = await this._get('/live/search/terminate', {
+            params,
+        });
+
+        if (r.status === 200) {
+            return true;
+        } else {
+            return r.status;
+        }
+    }
+}
+
+module.exports = IdentityLeaks;

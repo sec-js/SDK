@@ -18,7 +18,7 @@ const IntelXClient = require('../lib/IntelXClient');
         }
 
         // Start intelligent search
-        const searchId = await client.intelSearch('riseup.net', params);
+        const searchId = await client.intelSearchId('riseup.net', params);
 
         client.handleSearchId(searchId)
 

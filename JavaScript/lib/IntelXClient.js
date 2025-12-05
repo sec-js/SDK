@@ -42,14 +42,12 @@ class IntelXClient {
         const id = setTimeout(() => controller.abort(), timeout);
 
         try {
-            const response = await fetch(url, {
+            return await fetch(url, {
                 method: 'GET',
                 headers: headers,
                 signal: controller.signal,
                 ...fetchOptions,
             });
-
-            return response;
         } finally {
             clearTimeout(id);
         }
@@ -136,7 +134,7 @@ class IntelXClient {
      *
      * @returns {Promise<number|string>} - status (1) or id or HTTP status code.
      */
-    async intelSearch(
+    async intelSearchId(
         term,
         {
             maxresults = 100,
@@ -215,7 +213,7 @@ class IntelXClient {
         let remaining = maxresults;
 
         // Start intelligent search
-        const searchId = await this.intelSearch(term, {
+        const searchId = await this.intelSearchId(term, {
             maxresults: remaining,
             buckets,
             timeout,
@@ -274,6 +272,9 @@ class IntelXClient {
                 default:
                     throw new Error(message);
             }
+        }
+        if (searchId === '00000000-0000-0000-0000-000000000000') {
+            throw new Error('Empty Search Id (Item not found)');
         }
     }
 
