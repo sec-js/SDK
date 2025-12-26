@@ -1,6 +1,6 @@
 import time
 
-from .intelxapi import intelx
+from intelxapi import intelx
 
 class IdentityService(intelx):
 

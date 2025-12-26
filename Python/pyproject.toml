@@ -10,7 +10,7 @@ requires = [
 ]
 
 [project]
-name = "intelx-sdk"
+name = "intelx"
 readme = "README.md"
 requires-python = ">=3.10"
 version = "0.8.0dev3"
@@ -41,8 +41,10 @@ keywords = [
 "Bug Tracker" = "https://github.com/IntelligenceX/SDK/issues"
 Homepage = "https://github.com/IntelligenceX/SDK/tree/master/Python"
 
-[project.scripts]
-intelx = "scripts.intelx:main"
-
 [tool.setuptools]
-packages = ["intelx"]
+script-files = [
+    "scripts/intelx.py",
+]
+
+[tool.setuptools.package-dir]
+"" = "intelx"

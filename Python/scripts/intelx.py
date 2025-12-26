@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 # pylint: disable-msg=E0611
 
-import os
-import sys
+import argparse
 import html
 import json
+import os
+import sys
 import time
+from importlib.metadata import PackageNotFoundError, version
+
 import tabulate
-import argparse
-from importlib.metadata import version, PackageNotFoundError
-from intelx import intelx
-from intelx import IdentityService
-from termcolor import colored
+from intelx_identity import IdentityService
+from intelxapi import intelx
 from pygments import highlight
-from pygments.lexers import JsonLexer
 from pygments.formatters import TerminalFormatter
+from pygments.lexers import JsonLexer
+from termcolor import colored
 
 BOLD = '\033[1m'
 END = '\033[0m'
