@@ -14,8 +14,6 @@ The SDK contains these parts:
 6. [Maltego Transform](Maltego%20Transform/README.md)
 
 Latest updates:
-* 26.11.2025 - 0.8.0 see [Changelog](https://github.com/IntelligenceX/SDK/blob/master/Python/changelog/0.8.0dev3-CHANGELOG.md)
-* 27.10.2025 - 0.7.0 see [Changelog](https://github.com/IntelligenceX/SDK/blob/master/Python/changelog/0.7.0dev3-CHANGELOG.md)
 * 30.11.2024 - 0.6.2 installable from [Python Package Index](https://pypi.org/project/intelx/)
 * 06.06.2024 - Python supports "Export Leaked Accounts" of identity.intelx.io
 * <s>02.02.2024 - Python Package moved to [Python Repository](https://github.com/IntelligenceX/Python)</s>
