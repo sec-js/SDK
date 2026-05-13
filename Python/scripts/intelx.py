@@ -166,7 +166,7 @@ def main(argv=None):
 
     elif args.apikey:
         if args.identity:
-            ix_identity = IdentityService(args.apikey)
+            ix = IdentityService(args.apikey)
         else:
             ix = intelx(args.apikey, verify=args.proxy_insecure)
 
