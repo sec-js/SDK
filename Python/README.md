@@ -40,11 +40,12 @@ python -m pip install -e .
 
 Open the Dev Container and get a shell (VS Code)
 
-1. Open the folder **Python** (that contains **.devcontainer/**, next to **Dockerfile** and **requirements.txt**) in **VS Code**.
-2. Ensure **Docker** is running and the **Dev Containers** extension is installed.
-3. Press **Ctrl+Shift+P** → **Dev Containers: Reopen in Container**  
+1. Set up the environment variable as described in the [Environment Variable](#environment-variable) section.
+2. Open the folder **Python** (that contains **.devcontainer/**, next to **Dockerfile** and **requirements.txt**) in **VS Code**.
+3. Ensure **Docker** is running and the **Dev Containers** extension is installed.
+4. Press **Ctrl+Shift+P** → **Dev Containers: Reopen in Container**
    - If you changed the Dockerfile/requirements: **Dev Containers: Rebuild and Reopen in Container**.
-4. After the container opens, go to **Terminal → New Terminal** — this terminal runs **inside** the container.
+5. After the container opens, go to **Terminal → New Terminal** — this terminal runs **inside** the container.
 
 **Tips**
 - Not in a container? Click the green corner button (><) → **Reopen in Container**.
