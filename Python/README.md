@@ -404,5 +404,6 @@ Please use the [issue tracker](https://github.com/IntelligenceX/Python/issues)
 to report any bugs, security vulnerabilities or feature requests.
 
 Includes contributions from [CSIRTAmericas](https://github.com/CSIRTAmericas/pyintelxio)
-, [zer0pwn](https://github.com/zeropwn/intelx.py) and
+, [zer0pwn](https://github.com/zeropwn/intelx.py), [magoo](https://github.com/IntelligenceX/SDK/pull/581)
+ and
 [others](https://github.com/IntelligenceX/SDK/graphs/contributors)
