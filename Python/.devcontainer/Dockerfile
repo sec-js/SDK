@@ -1,4 +1,7 @@
-FROM python:3.12-slim
+# https://www.debian.org/releases/
+# https://devguide.python.org/versions/#versions
+# https://mcr.microsoft.com/en-us/artifact/mar/devcontainers/python
+FROM mcr.microsoft.com/devcontainers/python:3.14-trixie
 
 # OS deps you likely need for builds
 RUN apt-get update && apt-get install -y --no-install-recommends \
