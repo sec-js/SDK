@@ -9,7 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 # Non-root user
-RUN useradd -m -u 1000 -s /bin/bash vscode
+RUN if ! id -u vscode >/dev/null 2>&1; then \
+    useradd -m -u 1000 -s /bin/bash vscode; \
+    mkdir -p /home/vscode; \
+    chown -R vscode:vscode /home/vscode; \
+  fi
 USER vscode
 WORKDIR /workspaces
 

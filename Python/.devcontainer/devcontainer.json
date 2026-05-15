@@ -1,4 +1,4 @@
-{
+git{
   "name": "intelx-py-dev",
   "build": { "dockerfile": "Dockerfile", "context": "." },
   "runArgs": ["--env-file", ".env"],
